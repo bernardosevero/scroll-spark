@@ -44,6 +44,14 @@ describe("parseEnv", () => {
     },
   );
 
+  it("refuses a health secret too short to be safe", () => {
+    expect(() => parseEnv({ HEALTH_SECRET: "short" })).toThrow("HEALTH_SECRET");
+  });
+
+  it("starts production before the health check is set up, since it needs a signed-in user", () => {
+    expect(() => parseEnv({ ...COMPLETE, VERCEL_ENV: "production" })).not.toThrow();
+  });
+
   it("allows fake services in local browser flows", () => {
     expect(parseEnv({ E2E_FAKES: "1" }).E2E_FAKES).toBe("1");
   });
