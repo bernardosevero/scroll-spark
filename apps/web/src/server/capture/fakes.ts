@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import type { AccountRepository } from "@scroll-spark/core/account/account.service";
 import type {
   AnalysisRepository,
   CaptureLookup,
@@ -11,11 +12,34 @@ import type { CaptureRepository, LinkReader } from "@scroll-spark/core/capture/c
 import type { Capture } from "@scroll-spark/core/capture/schemas";
 import { AppError } from "@scroll-spark/core/errors/app-error";
 
+/** What a memory store does when its user deletes their data, like a cascade in the database. */
+interface MemoryStore {
+  forgetUser(userId: string): void;
+}
+
+/** Memory only. Nobody there has a Buffer grant, so none ever needs renewing. */
+export function createMemoryAccountRepository(stores: MemoryStore[]): AccountRepository {
+  return {
+    deleteUser(userId) {
+      stores.forEach((store) => store.forgetUser(userId));
+      return Promise.resolve();
+    },
+    needsReconnect: () => Promise.resolve(false),
+  };
+}
+
 /** Memory only. Used by browser flows, and where no database exists so nobody can sign in. */
-export function createMemoryCaptureRepository(): CaptureRepository & CaptureLookup {
+export function createMemoryCaptureRepository(): MemoryStore & CaptureRepository & CaptureLookup {
   const rows: (Capture & { userId: string })[] = [];
 
   return {
+    forgetUser(userId) {
+      for (let index = rows.length - 1; index >= 0; index -= 1) {
+        if (rows[index]?.userId === userId) {
+          rows.splice(index, 1);
+        }
+      }
+    },
     insert(capture) {
       const row = { ...capture, id: randomUUID(), createdAt: new Date().toISOString() };
       rows.unshift(row);
@@ -31,10 +55,17 @@ export function createMemoryCaptureRepository(): CaptureRepository & CaptureLook
   };
 }
 
-export function createMemoryAnalysisRepository(): AnalysisRepository {
+export function createMemoryAnalysisRepository(): MemoryStore & AnalysisRepository {
   const rows = new Map<string, Analysis & { userId: string }>();
 
   return {
+    forgetUser(userId) {
+      for (const [captureId, row] of rows) {
+        if (row.userId === userId) {
+          rows.delete(captureId);
+        }
+      }
+    },
     find: (captureId) => Promise.resolve(rows.get(captureId) ?? null),
     countSince(userId, since) {
       const used = [...rows.values()].filter(
@@ -49,10 +80,11 @@ export function createMemoryAnalysisRepository(): AnalysisRepository {
   };
 }
 
-export function createMemoryUserSettings(): UserSettings {
+export function createMemoryUserSettings(): MemoryStore & UserSettings {
   const geos = new Map<string, string>();
 
   return {
+    forgetUser: (userId) => void geos.delete(userId),
     getTrendsGeo: (userId) => Promise.resolve(geos.get(userId) ?? null),
     setTrendsGeo(userId, geo) {
       geos.set(userId, geo);

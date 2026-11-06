@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { Button } from "./button";
 import { ChipButton } from "./chip-button";
 import { FitRow } from "./fit-row";
+import { ReconnectNotice } from "./reconnect-notice";
 import { SparkBurst } from "./spark-burst";
 import { TextAreaField } from "./text-area-field";
 
@@ -59,6 +60,15 @@ describe("design system", () => {
     render(<FitRow channel="LinkedIn" verdict={verdict} detail="2 posts" />);
 
     expect(screen.getByText(words)).toBeTruthy();
+  });
+
+  it("announces the reconnect notice and links to the connect flow", () => {
+    render(<ReconnectNotice href="/api/auth/connect" />);
+
+    expect(screen.getByRole("alert")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "Reconnect Buffer" }).getAttribute("href")).toBe(
+      "/api/auth/connect",
+    );
   });
 
   it("shows the burst normally", () => {

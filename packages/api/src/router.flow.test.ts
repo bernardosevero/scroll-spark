@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { describe, expect, it, vi } from "vitest";
 
+import type { AccountService } from "@scroll-spark/core/account/account.service";
 import type { AnalysisService } from "@scroll-spark/core/analysis/analysis.service";
 import type { CaptureService } from "@scroll-spark/core/capture/capture.service";
 import { AppError } from "@scroll-spark/core/errors/app-error";
@@ -41,10 +42,18 @@ function createAnalysis(): AnalysisService {
 function callerWith(ping: PingService["ping"], userId: string | null = null) {
   const capture = createCapture();
   const analysis = createAnalysis();
+  const account: AccountService = {
+    status: vi.fn(() => Promise.resolve({ needsReconnect: false })),
+    deleteMyData: vi.fn(() => Promise.resolve()),
+  };
   return {
     capture,
     analysis,
-    caller: appRouter.createCaller({ userId, services: { ping: { ping }, capture, analysis } }),
+    account,
+    caller: appRouter.createCaller({
+      userId,
+      services: { ping: { ping }, capture, analysis, account },
+    }),
   };
 }
 
@@ -85,6 +94,33 @@ describe("API flow", () => {
 
     expect(error).toBeInstanceOf(TRPCError);
     expect(error).toMatchObject({ code: trpcCode, message: appCode });
+  });
+});
+
+describe("account API", () => {
+  it.each([
+    ["account.status", (caller: Caller) => caller.account.status()],
+    ["account.deleteMyData", (caller: Caller) => caller.account.deleteMyData()],
+  ])("refuses %s when signed out", async (_name, call) => {
+    const { caller, account } = callerWith(noPing, null);
+
+    await expect(call(caller)).rejects.toMatchObject({ message: "NOT_SIGNED_IN" });
+    expect(account.status).not.toHaveBeenCalled();
+    expect(account.deleteMyData).not.toHaveBeenCalled();
+  });
+
+  it("deletes only the signed-in user's data", async () => {
+    const { caller, account } = callerWith(noPing, "user-1");
+
+    await caller.account.deleteMyData();
+
+    expect(account.deleteMyData).toHaveBeenCalledWith("user-1");
+  });
+
+  it("reports the signed-in user's connection", async () => {
+    const { caller } = callerWith(noPing, "user-1");
+
+    await expect(caller.account.status()).resolves.toEqual({ needsReconnect: false });
   });
 });
 

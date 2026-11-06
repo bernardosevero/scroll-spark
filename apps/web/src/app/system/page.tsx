@@ -6,6 +6,7 @@ import { Card } from "@scroll-spark/ui/card";
 import { ChipButton } from "@scroll-spark/ui/chip-button";
 import { ChipLink } from "@scroll-spark/ui/chip-link";
 import { FitRow } from "@scroll-spark/ui/fit-row";
+import { ReconnectNotice } from "@scroll-spark/ui/reconnect-notice";
 import { SparkMark } from "@scroll-spark/ui/spark-mark";
 import { TextAreaField } from "@scroll-spark/ui/text-area-field";
 
@@ -87,6 +88,12 @@ export default function SystemPage() {
           <FitRow channel="G(Old) Times" verdict="new" detail="No posts on this yet" />
         </Card>
         <TextAreaField label="Captured text" defaultValue="Paste or capture a post, then fix it." />
+      </Section>
+
+      <Section title="Notices">
+        <div className="overflow-hidden rounded-print border-[3px] border-navy">
+          <ReconnectNotice href="/api/auth/connect" />
+        </div>
       </Section>
 
       <Section title="Motion">
