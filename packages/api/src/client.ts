@@ -12,6 +12,7 @@ export type { CapturedAnalysis } from "@scroll-spark/core/analysis/schemas";
 export type { ChannelView } from "@scroll-spark/core/buffer/schemas";
 export { MAX_CAPTURE_LENGTH } from "@scroll-spark/core/capture/limits";
 export type { Capture, CapturePlatform } from "@scroll-spark/core/capture/schemas";
+export { describeChannelFit, describeDuplicates } from "@scroll-spark/core/fit/fit-copy";
 
 export type { ConnectedToken, ExtensionToken } from "@scroll-spark/core/extension-token/schemas";
 
