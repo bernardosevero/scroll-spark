@@ -13,6 +13,7 @@ import {
 import type { ChannelView, DraftResult } from "@scroll-spark/api/client";
 import { useTRPC } from "@scroll-spark/api/react";
 import { Button } from "@scroll-spark/ui/button";
+import { SparkBurst } from "@scroll-spark/ui/spark-burst";
 import { TextAreaField } from "@scroll-spark/ui/text-area-field";
 
 import { SessionOver } from "../capture/session-over";
@@ -234,12 +235,17 @@ export function DraftEditor({
         }}
       />
       {post.isPending && <p role="status">Sending it to Buffer…</p>}
-      {isSentNow !== null && (
-        <p role="status" className="font-bold">
-          {isSentNow === "draft"
-            ? `Saved as a draft in Buffer for ${title}.`
-            : `Added to the ${serviceName(channel.service)} queue in Buffer for ${title}.`}
-        </p>
+      {post.isSuccess && (
+        <div className={isSentNow === null ? "relative hidden" : "relative"}>
+          {isSentNow !== null && (
+            <p role="status" className="font-bold">
+              {isSentNow === "draft"
+                ? `Saved as a draft in Buffer for ${title}.`
+                : `Added to the ${serviceName(channel.service)} queue in Buffer for ${title}.`}
+            </p>
+          )}
+          {post.variables.kind === "queue" && <SparkBurst />}
+        </div>
       )}
       {post.isError &&
         (code === "NOT_SIGNED_IN" ? (

@@ -10,7 +10,9 @@ import { Button, ButtonLink } from "@scroll-spark/ui/button";
 import { Card } from "@scroll-spark/ui/card";
 import { ChipLink } from "@scroll-spark/ui/chip-link";
 import { FitRow } from "@scroll-spark/ui/fit-row";
+import { FitReveal } from "@scroll-spark/ui/fit-reveal";
 import { Reveal } from "@scroll-spark/ui/reveal";
+import { SparkWait } from "@scroll-spark/ui/spark-wait";
 
 import { SessionOver } from "../capture/session-over";
 import { ShipPanel } from "../ship/ship-panel";
@@ -85,9 +87,11 @@ function FitCheck({ analysis }: { analysis: Analysis }) {
         How it fits your channels
       </h2>
       <ul className="flex flex-col gap-3">
-        {channels.map((fit) => (
+        {channels.map((fit, index) => (
           <li key={fit.channelId}>
-            <FitRow {...describeChannelFit(fit, { now })} />
+            <FitReveal matchCount={fit.state === "fits" ? fit.matchingPosts : 0} index={index}>
+              <FitRow {...describeChannelFit(fit, { now })} />
+            </FitReveal>
           </li>
         ))}
       </ul>
@@ -250,9 +254,12 @@ function AnalysisContent({
     <div className="flex flex-col gap-8">
       <Card isFeatured className="flex flex-col items-start gap-4">
         {analyze.isPending ? (
-          <p role="status" className="font-display text-3xl font-extrabold">
-            Finding the spark…
-          </p>
+          <SparkWait
+            steps={[
+              { label: "Saved to your inbox", isDone: true },
+              { label: "Finding the spark…", isDone: false },
+            ]}
+          />
         ) : (
           <>
             {analyze.isError &&
