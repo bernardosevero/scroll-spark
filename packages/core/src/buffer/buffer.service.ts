@@ -143,15 +143,27 @@ export function createBufferService({
 
   /** Never gated by the cache-only rule, never retried. The cache is cleared only on success. */
   async function write<T>(
+    operation: "createIdea" | "createPost",
     userId: string,
     clearPrefixes: string[],
     call: (accessToken: string) => Promise<GatewayResult<T>>,
   ): Promise<T> {
     const result = await call(await auth.getAccessToken(userId));
-    await quota.record(result.quota);
 
-    for (const prefix of clearPrefixes) {
-      await cache.clearPrefix(userId, prefix);
+    // Buffer has accepted the write. A failure in our own bookkeeping must not reach the user,
+    // who would see an error and may try again, which would post twice.
+    // Each step is tried on its own, so a stale cache is still cleared when the quota save fails.
+    const steps = [
+      () => quota.record(result.quota),
+      ...clearPrefixes.map((prefix) => () => cache.clearPrefix(userId, prefix)),
+    ];
+
+    for (const step of steps) {
+      try {
+        await step();
+      } catch {
+        logger?.warn("buffer.write_bookkeeping_failed", { operation });
+      }
     }
 
     return result.data;
@@ -185,11 +197,16 @@ export function createBufferService({
       ),
 
     createIdea: (userId, input) =>
-      write(userId, [`ideas:${input.organizationId}`], (token) => gateway.createIdea(token, input)),
+      write("createIdea", userId, [`ideas:${input.organizationId}`], (token) =>
+        gateway.createIdea(token, input),
+      ),
 
     createPost: (userId, input) =>
-      write(userId, [`posts:${input.organizationId}:`, `ideas:${input.organizationId}`], (token) =>
-        gateway.createPost(token, input),
+      write(
+        "createPost",
+        userId,
+        [`posts:${input.organizationId}:`, `ideas:${input.organizationId}`],
+        (token) => gateway.createPost(token, input),
       ),
   };
 }

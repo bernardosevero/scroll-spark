@@ -76,16 +76,20 @@ function setup({ quota: startingQuota = [] as QuotaWindow[] } = {}) {
   const getAccessToken = vi.fn<(userId: string) => Promise<string>>(() =>
     Promise.resolve("token-1"),
   );
+  const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn() };
   const service = createBufferService({
     gateway,
     auth: { getAccessToken },
     cache,
     quota,
     clock: { now: () => now },
+    logger,
   });
 
   return {
     service,
+    cache,
+    logger,
     gateway,
     getAccessToken,
     entries,
@@ -195,6 +199,38 @@ describe("reading from Buffer", () => {
 });
 
 describe("writing to Buffer", () => {
+  it.each([
+    ["recording the quota", "quota"],
+    ["clearing the cache", "cache"],
+  ] as const)(
+    "still returns the post when %s fails afterwards, so nobody posts twice",
+    async (_name, failing) => {
+      const { service, gateway, quota, cache, logger } = setup();
+      const boom = new Error("database hiccup SECRET-POST-TEXT");
+      if (failing === "quota") {
+        vi.spyOn(quota, "record").mockRejectedValue(boom);
+      } else {
+        vi.spyOn(cache, "clearPrefix").mockRejectedValue(boom);
+      }
+
+      await expect(
+        service.createPost("user-1", {
+          organizationId: "org-1",
+          channelId: "ch-1",
+          text: "SECRET-POST-TEXT",
+          mode: "addToQueue",
+          saveToDraft: true,
+        }),
+      ).resolves.toMatchObject({ id: "post-1" });
+
+      expect(gateway.createPost).toHaveBeenCalledTimes(1);
+      expect(logger.warn).toHaveBeenCalledWith("buffer.write_bookkeeping_failed", {
+        operation: "createPost",
+      });
+      expect(JSON.stringify(logger.warn.mock.calls)).not.toContain("SECRET");
+    },
+  );
+
   it("clears the matching cache keys, and only those", async () => {
     const { service, gateway } = setup();
     await service.ideas("user-1", "org-1");
