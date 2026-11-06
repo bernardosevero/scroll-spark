@@ -1,10 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
+﻿import { describe, expect, it, vi } from "vitest";
 
 import type { AccountService } from "@scroll-spark/core/account/account.service";
 import type { AnalysisService } from "@scroll-spark/core/analysis/analysis.service";
 import type { ChannelSettingsService } from "@scroll-spark/core/buffer/channel-settings.service";
 import type { CaptureService } from "@scroll-spark/core/capture/capture.service";
 import type { ExtensionTokenService } from "@scroll-spark/core/extension-token/extension-token.service";
+import type { ShipService } from "@scroll-spark/core/ship/ship.service";
 
 import { resolveCaller } from "./context";
 import { appRouter } from "./router";
@@ -38,6 +39,7 @@ function setup() {
     capture,
     analysis: {} as AnalysisService,
     extensionTokens,
+    ship: {} as ShipService,
     account: {} as AccountService,
     channels: {} as ChannelSettingsService,
   };
@@ -104,6 +106,7 @@ describe("deleting an account", () => {
         analysis: {} as AnalysisService,
         channels: {} as ChannelSettingsService,
         extensionTokens: {} as ExtensionTokenService,
+        ship: {} as ShipService,
         account,
       },
     });
@@ -143,6 +146,7 @@ describe("minting and revoking connections", () => {
         account: {} as AccountService,
         channels: {} as ChannelSettingsService,
         extensionTokens,
+        ship: {} as ShipService,
       },
     });
 

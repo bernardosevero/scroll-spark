@@ -1,9 +1,9 @@
-import type { BufferPost } from "../buffer/schemas";
+﻿import type { BufferPost } from "../buffer/schemas";
 
 /** Posts shorter than this say too little about how someone writes. */
 const MIN_SAMPLE_LENGTH = 80;
 const MAX_SAMPLE_LENGTH = 500;
-export const MAX_VOICE_SAMPLES = 8;
+const MAX_VOICE_SAMPLES = 8;
 /** Fewer usable posts than this and a draft can't honestly claim to sound like the user. */
 export const MIN_VOICE_SAMPLES = 3;
 
