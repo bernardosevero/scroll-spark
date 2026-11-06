@@ -13,6 +13,7 @@ jobs:
   verify:
     name: Lint, format, types, tests, build, knip
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -26,6 +27,7 @@ jobs:
   e2e:
     name: Flows (Playwright)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
