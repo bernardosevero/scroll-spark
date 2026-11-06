@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { Button } from "@scroll-spark/ui/button";
 import { Card } from "@scroll-spark/ui/card";
+import { ChipButton } from "@scroll-spark/ui/chip-button";
 import { ChipLink } from "@scroll-spark/ui/chip-link";
 import { FitRow } from "@scroll-spark/ui/fit-row";
 import { SparkMark } from "@scroll-spark/ui/spark-mark";
@@ -73,6 +74,7 @@ export default function SystemPage() {
           <ChipLink href="https://trends.google.com/trends/explore?q=build%20in%20public">
             build in public
           </ChipLink>
+          <ChipButton>A founder story</ChipButton>
         </div>
       </Section>
 

@@ -19,7 +19,7 @@ flowchart TB
     api[packages/api<br/>one-line routers]
     core[packages/core<br/>services and schemas]
     comp[server/composition.ts<br/>the wiring]
-    adapters[server adapters]:::planned
+    adapters[server adapters]
   end
 
   ui --> panel
@@ -33,8 +33,27 @@ flowchart TB
   adapters --> buffer[Buffer GraphQL API]:::planned
   adapters --> claude[Claude API]:::planned
   adapters --> db[(Neon Postgres)]
+  adapters -- link reader, SSRF checked --> web[YouTube oEmbed and public pages]
 
   classDef planned stroke-dasharray: 6 4
+```
+
+**Tables so far:** `users`, `buffer_grants`, `captures`.
+
+## Reading a link safely
+
+`capture.readLink` makes our server fetch a URL the user chose, so `server/capture/safe-get.ts` guards it. It uses `node:http` because a custom `lookup` checks each address at the moment of connecting, which leaves no gap for a host to pass a check and then rebind to a private address.
+
+```mermaid
+flowchart LR
+  url[User's link] --> kind{Which site?}
+  kind -- LinkedIn --> paste[Ask for pasted text]
+  kind -- YouTube --> oembed[oEmbed]
+  kind -- Anything else --> page[Open Graph tags]
+  oembed --> check[Scheme, port, no credentials, no IP literal, public address, on each redirect]
+  page --> check
+  check -- refused or nothing useful --> paste
+  check -- readable --> field[Fill the field for correction]
 ```
 
 ## From scroll to shipped post

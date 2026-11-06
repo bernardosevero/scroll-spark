@@ -1,5 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
+import { E2E_SECRET_KEY } from "./e2e/support/session";
+
 const PORT = 3100;
 
 // Runs Next directly. A `pnpm` wrapper can keep the server's pipes open after tests finish, which
@@ -22,7 +24,8 @@ export default defineConfig({
       BUFFER_CLIENT_ID: "e2e-client",
       BUFFER_CLIENT_SECRET: "e2e-secret",
       DATABASE_URL: "postgres://e2e:e2e@localhost:5432/e2e",
-      SECRET_KEY: Buffer.alloc(32, 1).toString("base64"),
+      SECRET_KEY: E2E_SECRET_KEY,
+      E2E_FAKES: "1",
     },
     reuseExistingServer: !process.env.CI,
     timeout: 240_000,

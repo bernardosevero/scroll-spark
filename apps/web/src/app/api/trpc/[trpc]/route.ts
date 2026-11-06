@@ -2,6 +2,7 @@ import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 
 import { appRouter } from "@scroll-spark/api/router";
 
+import { currentUserId } from "@/server/auth/current-user";
 import { getComposition } from "@/server/composition";
 import { allowedOrigin, corsHeaders } from "@/server/cors";
 import { getEnv } from "@/server/env";
@@ -25,7 +26,7 @@ async function handle(request: Request) {
     endpoint: "/api/trpc",
     req: request,
     router: appRouter,
-    createContext: () => ({ services }),
+    createContext: async () => ({ userId: await currentUserId(), services }),
     onError({ error, path }) {
       if (error.code === "INTERNAL_SERVER_ERROR") {
         logger.error("api.unexpected_error", { path: path ?? null, name: error.name });

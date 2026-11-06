@@ -74,7 +74,7 @@ export async function handleCallback(request: NextRequest, context: OAuthContext
       redirectUri: redirectUriFor(appUrl),
     });
 
-    response = NextResponse.redirect(`${appUrl}/`);
+    response = NextResponse.redirect(`${appUrl}/inbox`);
     response.cookies.set(
       SESSION_COOKIE,
       sealSession({ sealer: sessionSealer, userId, now: now() }),

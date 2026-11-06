@@ -15,6 +15,13 @@
       "when": 1793939442541,
       "tag": "0001_nostalgic_ezekiel",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793968325229,
+      "tag": "0002_common_groot",
+      "breakpoints": true
     }
   ]
 }

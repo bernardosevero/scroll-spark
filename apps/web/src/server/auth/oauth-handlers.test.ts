@@ -82,7 +82,7 @@ describe("OAuth routes", () => {
 
     const response = await callback("code=code-1&state=state-1", pending);
 
-    expect(response.headers.get("location")).toBe(`${APP_URL}/`);
+    expect(response.headers.get("location")).toBe(`${APP_URL}/inbox`);
     expect(
       openSession({
         sealer: sessionSealer,

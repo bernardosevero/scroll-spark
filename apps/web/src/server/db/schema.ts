@@ -1,4 +1,6 @@
-import { boolean, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+
+import type { CapturePlatform } from "@scroll-spark/core/capture/schemas";
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -22,3 +24,23 @@ export const bufferGrants = pgTable("buffer_grants", {
   needsReconnect: boolean("needs_reconnect").notNull().default(false),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/** Text a user chose to keep, waiting in their inbox. Nothing here is in Buffer yet. */
+export const captures = pgTable(
+  "captures",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** At most about 1,000 characters. Plain text, never rendered as HTML. */
+    text: text("text").notNull(),
+    /** Where the text came from. Null when it was only pasted or is an example. */
+    sourceUrl: text("source_url"),
+    platform: text("platform").$type<CapturePlatform>().notNull(),
+    /** Who it came from: a channel, a site or an author. Null when unknown. */
+    sourceName: text("source_name"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("captures_user_newest").on(table.userId, table.createdAt.desc())],
+);
