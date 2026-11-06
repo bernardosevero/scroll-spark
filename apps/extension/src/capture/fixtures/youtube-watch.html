@@ -1,0 +1,43 @@
+<!doctype html>
+<!--
+  UNVERIFIED FIXTURE. Written by hand from knowledge of YouTube's watch-page markup, not saved from
+  a live page. The video, channel and every sentence are invented. The owner must compare the
+  selectors in src/capture/youtube.ts against a live watch page.
+-->
+<html lang="en">
+  <head>
+    <title>How I plan a month of posts in one afternoon - YouTube</title>
+    <meta property="og:title" content="How I plan a month of posts in one afternoon" />
+    <meta name="description" content="A short version of the description, cut off by" />
+    <link rel="canonical" href="https://www.youtube.com/watch?v=exampleid01" />
+  </head>
+  <body>
+    <ytd-app>
+      <ytd-watch-flexy>
+        <span itemprop="author" itemscope itemtype="http://schema.org/Person">
+          <link itemprop="url" href="https://www.youtube.com/@examplechannel" />
+          <link itemprop="name" content="Example Channel" />
+        </span>
+        <ytd-watch-metadata>
+          <h1><yt-formatted-string>How I plan a month of posts in one afternoon</yt-formatted-string></h1>
+          <div id="description-inner">
+            <div id="info-container">12,345 views  Nov 3, 2026</div>
+            <ytd-text-inline-expander id="description-inline-expander">
+              <yt-attributed-string id="attributed-snippet-text">
+                <span>In this video I batch a month of posts.</span><br />
+                <span>Chapters, templates and the exact routine I use every Sunday.</span>
+                <button>...more</button>
+              </yt-attributed-string>
+            </ytd-text-inline-expander>
+          </div>
+        </ytd-watch-metadata>
+        <ytd-engagement-panel-section-list-renderer>
+          <ytd-transcript-renderer>
+            <div class="segment">0:00 TRANSCRIPT_LINE_ONE welcome back to the channel</div>
+            <div class="segment">0:07 TRANSCRIPT_LINE_TWO today we are planning posts</div>
+          </ytd-transcript-renderer>
+        </ytd-engagement-panel-section-list-renderer>
+      </ytd-watch-flexy>
+    </ytd-app>
+  </body>
+</html>

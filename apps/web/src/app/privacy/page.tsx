@@ -107,8 +107,8 @@ export default async function PrivacyPage() {
               <b>Revoke an extension token</b> in{" "}
               <Link href="/settings" className={LINK}>
                 Settings
-              </Link>{" "}
-              once the extension is out. Deleting your data removes them all.
+              </Link>
+              . Deleting your data removes them all.
             </li>
             <li>
               <b>Delete your data</b> in{" "}

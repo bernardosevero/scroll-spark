@@ -21,6 +21,8 @@
     "./fit/fit-copy": "./src/fit/fit-copy.ts",
     "./fit/fit.service": "./src/fit/fit.service.ts",
     "./fit/schemas": "./src/fit/schemas.ts",
+    "./extension-token/extension-token.service": "./src/extension-token/extension-token.service.ts",
+    "./extension-token/schemas": "./src/extension-token/schemas.ts",
     "./logging/logger": "./src/logging/logger.ts",
     "./ping/ping.service": "./src/ping/ping.service.ts",
     "./ping/schemas": "./src/ping/schemas.ts",
