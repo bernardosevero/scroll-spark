@@ -7,6 +7,7 @@
     "dev": "wxt",
     "build": "wxt build",
     "zip": "wxt zip",
+    "test": "vitest run",
     "typecheck": "wxt prepare && tsc",
     "postinstall": "wxt prepare"
   },
@@ -19,11 +20,16 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.3",
     "@types/chrome": "^0.1.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^6.1.2",
     "@wxt-dev/module-react": "^1.2.0",
+    "jsdom": "^29.1.1",
     "typescript": "~6.0.3",
+    "vitest": "^5.0.5",
     "wxt": "^0.21.0"
   }
 }

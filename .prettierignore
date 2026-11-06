@@ -8,3 +8,6 @@ playwright-report
 test-results
 apps/web/drizzle/meta
 apps/web/next-env.d.ts
+
+# Hand-written page fixtures keep their layout
+apps/extension/src/capture/fixtures

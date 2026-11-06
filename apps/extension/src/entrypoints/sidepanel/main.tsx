@@ -5,14 +5,19 @@ import { createRoot } from "react-dom/client";
 import { createApiClient } from "@scroll-spark/api/client";
 import { TRPCProvider } from "@scroll-spark/api/react";
 
-import { SidePanel } from "./side-panel";
+import { WEB_ORIGIN } from "~/lib/config";
+import { chromeEnvironment } from "~/panel/environment";
+import { SidePanel } from "~/panel/side-panel";
 import "./style.css";
 
-const API_ORIGIN =
-  (import.meta.env.WXT_API_ORIGIN as string | undefined) ?? "http://localhost:3000";
-
-const queryClient = new QueryClient();
-const trpcClient = createApiClient({ url: `${API_ORIGIN}/api/trpc` });
+// An expected failure, like a revoked token, won't change by asking again.
+const queryClient = new QueryClient({
+  defaultOptions: { mutations: { retry: false }, queries: { retry: false } },
+});
+const trpcClient = createApiClient({
+  url: `${WEB_ORIGIN}/api/trpc`,
+  getToken: async () => (await chromeEnvironment.readToken())?.value ?? null,
+});
 const container = document.querySelector("#root");
 
 if (container === null) {
@@ -23,7 +28,7 @@ createRoot(container).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <TRPCProvider queryClient={queryClient} trpcClient={trpcClient}>
-        <SidePanel />
+        <SidePanel environment={chromeEnvironment} webOrigin={WEB_ORIGIN} />
       </TRPCProvider>
     </QueryClientProvider>
   </StrictMode>,

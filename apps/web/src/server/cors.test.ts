@@ -1,9 +1,23 @@
 import { describe, expect, it } from "vitest";
 
-import { allowedOrigin } from "./cors";
+import { allowedOrigin, corsHeaders } from "./cors";
 
 const OURS = "chrome-extension://ours";
 const OTHER = "chrome-extension://other";
+
+describe("corsHeaders", () => {
+  it("lets the panel send its bearer token, and never sends cookies across origins", () => {
+    const headers = corsHeaders(OURS) as Record<string, string>;
+
+    expect(headers["Access-Control-Allow-Origin"]).toBe(OURS);
+    expect(headers["Access-Control-Allow-Headers"]).toContain("authorization");
+    expect(headers["Access-Control-Allow-Credentials"]).toBeUndefined();
+  });
+
+  it("says nothing to an origin that isn't allowed", () => {
+    expect(corsHeaders(null)).toEqual({});
+  });
+});
 
 describe("allowedOrigin", () => {
   it.each([

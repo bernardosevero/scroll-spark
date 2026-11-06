@@ -8,6 +8,7 @@ import { createAuthService } from "@scroll-spark/core/auth/auth.service";
 import { createBufferService } from "@scroll-spark/core/buffer/buffer.service";
 import { createChannelSettingsService } from "@scroll-spark/core/buffer/channel-settings.service";
 import { createCaptureService } from "@scroll-spark/core/capture/capture.service";
+import { createExtensionTokenService } from "@scroll-spark/core/extension-token/extension-token.service";
 import { AppError } from "@scroll-spark/core/errors/app-error";
 import type { Logger } from "@scroll-spark/core/logging/logger";
 import { createPingService } from "@scroll-spark/core/ping/ping.service";
@@ -27,11 +28,13 @@ import {
   createMemoryAccountRepository,
   createMemoryAnalysisRepository,
   createMemoryCaptureRepository,
+  createMemoryExtensionTokenRepository,
   createMemoryUserSettings,
   fakeLinkReader,
   fakeLlm,
 } from "./capture/fakes";
 import { createLinkReader } from "./capture/link-reader";
+import { tokenCrypto } from "./extension-token/token-crypto";
 import { createSafeGet } from "./capture/safe-get";
 import { createSealer } from "./crypto/seal";
 import { createAccountRepository } from "./db/account-repository";
@@ -43,6 +46,7 @@ import {
 } from "./db/buffer-repository";
 import { createCaptureRepository } from "./db/capture-repository";
 import { createDb } from "./db/client";
+import { createExtensionTokenRepository } from "./db/extension-token-repository";
 import { createGrantRepository } from "./db/grant-repository";
 import { getEnv } from "./env";
 import { createAnthropicGateway } from "./llm/anthropic-gateway";
@@ -95,12 +99,14 @@ function composeStores() {
     const captures = createMemoryCaptureRepository();
     const analyses = createMemoryAnalysisRepository();
     const settings = createMemoryUserSettings();
+    const extensionTokens = createMemoryExtensionTokenRepository();
 
     return {
       captures,
       analyses,
       settings,
-      accounts: createMemoryAccountRepository([captures, analyses, settings]),
+      extensionTokens,
+      accounts: createMemoryAccountRepository([captures, analyses, settings, extensionTokens]),
       bufferCache: createMemoryBufferCache(),
       bufferQuota: createMemoryQuotaStore(),
       bufferPreferences: createMemoryBufferPreferences(),
@@ -113,6 +119,7 @@ function composeStores() {
     captures: createCaptureRepository({ db }),
     analyses: createAnalysisRepository({ db }),
     settings: createUserSettingsRepository({ db }),
+    extensionTokens: createExtensionTokenRepository({ db }),
     bufferCache: createBufferCacheRepository({ db }),
     bufferQuota: createBufferQuotaRepository({ db }),
     bufferPreferences: createBufferPreferencesRepository({ db }),
@@ -162,7 +169,7 @@ function composeLlm(logger: Logger): LlmGateway {
 
 function composeProductServices(logger: Logger, oauth: OAuthContext | null) {
   const stores = composeStores();
-  const { captures, analyses, settings, accounts } = stores;
+  const { captures, analyses, settings, accounts, extensionTokens } = stores;
   const linkReader =
     getEnv().E2E_FAKES === undefined
       ? createLinkReader({ get: createSafeGet(), logger })
@@ -171,6 +178,11 @@ function composeProductServices(logger: Logger, oauth: OAuthContext | null) {
   return {
     account: createAccountService({ accounts }),
     capture: createCaptureService({ captures, linkReader }),
+    extensionTokens: createExtensionTokenService({
+      tokens: extensionTokens,
+      crypto: tokenCrypto,
+      clock,
+    }),
     analysis: createAnalysisService({
       llm: composeLlm(logger),
       analyses,

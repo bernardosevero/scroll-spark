@@ -131,6 +131,14 @@ test.describe("signed in", () => {
     await expect(page.getByText("Nothing here yet.")).toBeVisible();
   });
 
+  test("settings leads to the side panel's connections", async ({ page }) => {
+    await page.goto("/settings");
+
+    await page.getByRole("link", { name: "Manage connections" }).click();
+
+    await expect(page).toHaveURL("/extension/connect");
+  });
+
   test("the delete page says the Buffer side is the user's to remove", async ({ page }) => {
     await page.goto("/settings");
 
