@@ -9,6 +9,7 @@ import {
 import type { AppRouter } from "./router";
 
 export type { CapturedAnalysis } from "@scroll-spark/core/analysis/schemas";
+export { chooseChannel } from "@scroll-spark/core/buffer/channel-choice";
 export type { ChannelView } from "@scroll-spark/core/buffer/schemas";
 export { MAX_CAPTURE_LENGTH } from "@scroll-spark/core/capture/limits";
 export { characterLimitFor, countCharacters } from "@scroll-spark/core/ship/limits";

@@ -1,7 +1,7 @@
 import { Card } from "@scroll-spark/ui/card";
 
 /** Nothing captured yet: say how, in the three ways the extension offers. */
-export function Waiting() {
+export function Idle() {
   return (
     <Card className="flex flex-col gap-3 p-4!">
       <h2 className="font-display text-2xl leading-7 font-extrabold tracking-tight">

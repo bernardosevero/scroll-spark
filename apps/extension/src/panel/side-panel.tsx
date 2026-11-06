@@ -1,11 +1,11 @@
 import { SparkMark } from "@scroll-spark/ui/spark-mark";
 
 import { isExpired } from "../lib/connect-message";
+import { CaptureFlow } from "./capture-flow";
 import type { PanelEnvironment } from "./environment";
-import { ReviewForm } from "./review-form";
+import { Idle } from "./idle";
 import { SignedOut } from "./signed-out";
 import { readPending, readToken, useEnvironmentValue } from "./use-environment-value";
-import { Waiting } from "./waiting";
 
 export function SidePanel({
   environment,
@@ -28,12 +28,12 @@ export function SidePanel({
     }
 
     if (pending === null) {
-      return <Waiting />;
+      return <Idle />;
     }
 
     return (
-      <ReviewForm
-        // A new capture starts a fresh form, so one capture's edits never leak into the next.
+      <CaptureFlow
+        // A new capture starts a fresh flow, so one capture's edits never leak into the next.
         key={pending.id}
         pending={pending}
         webOrigin={webOrigin}

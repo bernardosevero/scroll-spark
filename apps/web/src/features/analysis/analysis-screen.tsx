@@ -7,41 +7,16 @@ import { appCodeOf, describeChannelFit, describeDuplicates } from "@scroll-spark
 import type { CapturedAnalysis } from "@scroll-spark/api/client";
 import { useTRPC } from "@scroll-spark/api/react";
 import { Button, ButtonLink } from "@scroll-spark/ui/button";
+import { AnalysisCard } from "@scroll-spark/ui/analysis-card";
 import { Card } from "@scroll-spark/ui/card";
-import { ChipLink } from "@scroll-spark/ui/chip-link";
-import { FitRow } from "@scroll-spark/ui/fit-row";
-import { FitReveal } from "@scroll-spark/ui/fit-reveal";
+import { FitCheck } from "@scroll-spark/ui/fit-check";
 import { Reveal } from "@scroll-spark/ui/reveal";
-import { SparkWait } from "@scroll-spark/ui/spark-wait";
+import { analysisFailureMessage } from "@scroll-spark/ui/ship-messages";
+import { TrendsLinks } from "@scroll-spark/ui/trends-links";
 
 import { SessionOver } from "../capture/session-over";
 import { ShipPanel } from "../ship/ship-panel";
 import { AppFrame } from "../shell/app-frame";
-
-const COUNTRIES = [
-  ["US", "United States"],
-  ["GB", "United Kingdom"],
-  ["CA", "Canada"],
-  ["AU", "Australia"],
-  ["BR", "Brazil"],
-  ["PT", "Portugal"],
-  ["ES", "Spain"],
-  ["MX", "Mexico"],
-  ["FR", "France"],
-  ["DE", "Germany"],
-  ["IN", "India"],
-] as const;
-
-function analysisFailureMessage(code: string | null) {
-  switch (code) {
-    case "LLM_REFUSED":
-      return "We couldn't analyze this one. Your capture is safe in your inbox.";
-    case "ANALYSIS_LIMIT_REACHED":
-      return "That's today's limit reached. Your capture is safe, so come back tomorrow.";
-    default:
-      return "That didn't work this time. Your capture is safe, so you can try again.";
-  }
-}
 
 function useCapturedAnalysis(captureId: string) {
   const trpc = useTRPC();
@@ -60,47 +35,27 @@ function useCapturedAnalysis(captureId: string) {
 
 type Analysis = NonNullable<CapturedAnalysis["analysis"]>;
 
-/** How the capture relates to each channel: counts and dates, never a prediction. */
-function FitCheck({ analysis }: { analysis: Analysis }) {
+function FitCheckSection({ analysis }: { analysis: Analysis }) {
   const { channels, duplicates } = analysis;
   const now = new Date();
 
-  if (channels === null || channels.length === 0) {
-    return (
-      <section aria-labelledby="fit-title" className="flex flex-col items-start gap-2">
-        <h2 id="fit-title" className="font-display text-2xl font-extrabold">
-          How it fits your channels
-        </h2>
-        <p>There&apos;s no fit check for this one yet.</p>
+  return (
+    <FitCheck
+      rows={(channels ?? []).map((fit) => ({
+        ...describeChannelFit(fit, { now }),
+        matchCount: fit.state === "fits" ? fit.matchingPosts : 0,
+      }))}
+      duplicateNote={duplicates === null ? null : describeDuplicates(duplicates)}
+      emptyAction={
         <ButtonLink href="/channels" variant="plain">
           Choose your channels
         </ButtonLink>
-      </section>
-    );
-  }
-
-  const duplicateNote = duplicates === null ? null : describeDuplicates(duplicates);
-
-  return (
-    <section aria-labelledby="fit-title" className="flex flex-col gap-3">
-      <h2 id="fit-title" className="font-display text-2xl font-extrabold">
-        How it fits your channels
-      </h2>
-      <ul className="flex flex-col gap-3">
-        {channels.map((fit, index) => (
-          <li key={fit.channelId}>
-            <FitReveal matchCount={fit.state === "fits" ? fit.matchingPosts : 0} index={index}>
-              <FitRow {...describeChannelFit(fit, { now })} />
-            </FitReveal>
-          </li>
-        ))}
-      </ul>
-      {duplicateNote !== null && <p className="font-medium">{duplicateNote}</p>}
-    </section>
+      }
+    />
   );
 }
 
-function TrendsLinks({ captureId, data }: { captureId: string; data: CapturedAnalysis }) {
+function TrendsSection({ captureId, data }: { captureId: string; data: CapturedAnalysis }) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
   const setGeo = useMutation(
@@ -111,41 +66,16 @@ function TrendsLinks({ captureId, data }: { captureId: string; data: CapturedAna
   const trends = data.analysis?.trends;
 
   return (
-    <section aria-labelledby="trends-title" className="flex flex-col gap-3">
-      <h2 id="trends-title" className="font-display text-2xl font-extrabold">
-        View on Google Trends
-      </h2>
-      <div className="flex flex-wrap gap-2">
-        {trends?.links.map(({ phrase, url }) => (
-          <ChipLink key={phrase} href={url}>
-            {phrase}
-          </ChipLink>
-        ))}
-        {trends?.compareUrl && <ChipLink href={trends.compareUrl}>Compare all</ChipLink>}
-      </div>
-      <label className="flex flex-wrap items-center gap-2 text-sm font-bold">
-        Country
-        <select
-          value={data.trendsGeo}
-          disabled={setGeo.isPending}
-          onChange={(event) => {
-            setGeo.mutate({ geo: event.target.value });
-          }}
-          className="min-h-11 rounded-print border-2 border-navy bg-paper px-2 font-medium"
-        >
-          {COUNTRIES.map(([code, name]) => (
-            <option key={code} value={code}>
-              {name}
-            </option>
-          ))}
-        </select>
-      </label>
-      {setGeo.isError && (
-        <p role="alert" className="font-medium text-danger">
-          That country didn&apos;t save, so try again.
-        </p>
-      )}
-    </section>
+    <TrendsLinks
+      links={trends?.links ?? []}
+      compareUrl={trends?.compareUrl ?? null}
+      geo={data.trendsGeo}
+      isSaving={setGeo.isPending}
+      hasError={setGeo.isError}
+      onGeoChange={(geo) => {
+        setGeo.mutate({ geo });
+      }}
+    />
   );
 }
 
@@ -232,15 +162,14 @@ function AnalysisContent({
     return (
       <Reveal>
         <div className="flex flex-col gap-8">
-          <Card isFeatured className="flex flex-col gap-4">
-            <p className="text-sm font-bold">{analysis.topic}</p>
-            <h1 className="font-display text-4xl leading-10 font-extrabold tracking-tight">
-              {analysis.angle}
-            </h1>
-            <p>{analysis.summary}</p>
-          </Card>
-          <FitCheck analysis={analysis} />
-          <TrendsLinks captureId={captureId} data={data} />
+          <AnalysisCard
+            status="ready"
+            topic={analysis.topic}
+            angle={analysis.angle}
+            summary={analysis.summary}
+          />
+          <FitCheckSection analysis={analysis} />
+          <TrendsSection captureId={captureId} data={data} />
           <ShipPanel captureId={captureId} sourceText={data.capture.text} />
           <SourceText data={data} />
         </div>
@@ -249,39 +178,39 @@ function AnalysisContent({
   }
 
   const code = appCodeOf(analyze.error);
+  const canTryAgain = code !== "ANALYSIS_LIMIT_REACHED" && code !== "NOT_SIGNED_IN";
 
   return (
     <div className="flex flex-col gap-8">
-      <Card isFeatured className="flex flex-col items-start gap-4">
-        {analyze.isPending ? (
-          <SparkWait
-            steps={[
-              { label: "Saved to your inbox", isDone: true },
-              { label: "Finding the spark…", isDone: false },
-            ]}
-          />
-        ) : (
-          <>
-            {analyze.isError &&
-              (code === "NOT_SIGNED_IN" ? (
-                <SessionOver />
-              ) : (
-                <p role="alert" className="font-medium text-danger">
-                  {analysisFailureMessage(code)}
-                </p>
-              ))}
-            {code !== "ANALYSIS_LIMIT_REACHED" && code !== "NOT_SIGNED_IN" && (
-              <Button
-                onClick={() => {
-                  mutate({ captureId });
-                }}
-              >
-                {analyze.isError ? "Try again" : "Find the spark"}
-              </Button>
-            )}
-          </>
-        )}
-      </Card>
+      {analyze.isPending ? (
+        <AnalysisCard status="finding" />
+      ) : code === "NOT_SIGNED_IN" ? (
+        <Card isFeatured>
+          <SessionOver />
+        </Card>
+      ) : analyze.isError ? (
+        <AnalysisCard status="failed" message={analysisFailureMessage(code)}>
+          {canTryAgain && (
+            <Button
+              onClick={() => {
+                mutate({ captureId });
+              }}
+            >
+              Try again
+            </Button>
+          )}
+        </AnalysisCard>
+      ) : (
+        <Card isFeatured className="flex flex-col items-start gap-4">
+          <Button
+            onClick={() => {
+              mutate({ captureId });
+            }}
+          >
+            Find the spark
+          </Button>
+        </Card>
+      )}
       <SourceText data={data} />
     </div>
   );

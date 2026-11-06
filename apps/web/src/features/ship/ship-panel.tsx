@@ -3,7 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
-import { appCodeOf } from "@scroll-spark/api/client";
+import { appCodeOf, chooseChannel } from "@scroll-spark/api/client";
 import { useTRPC } from "@scroll-spark/api/react";
 import { Button, ButtonLink } from "@scroll-spark/ui/button";
 import { IdeaFlight } from "@scroll-spark/ui/idea-flight";
@@ -11,7 +11,7 @@ import { IdeaFlight } from "@scroll-spark/ui/idea-flight";
 import { SessionOver } from "../capture/session-over";
 import { ChannelChoice } from "./channel-choice";
 import { DraftEditor } from "./draft-editor";
-import { ideaFailureMessage } from "./ship-messages";
+import { ideaFailureMessage } from "@scroll-spark/ui/ship-messages";
 
 function SaveIdea({ captureId }: { captureId: string }) {
   const trpc = useTRPC();
@@ -73,14 +73,9 @@ function ChannelStep({ captureId, sourceText }: { captureId: string; sourceText:
     return <p role="alert">We couldn&apos;t read your channels. Reload to try again.</p>;
   }
 
-  const { organizationId, channels: all, defaultChannelIds } = channels.data;
-  const supported = all.filter(({ isSupported }) => isSupported);
-  const selectedId =
-    pickedId ??
-    defaultChannelIds.find((id) => supported.some((channel) => channel.id === id)) ??
-    supported[0]?.id ??
-    null;
-  const selected = supported.find(({ id }) => id === selectedId);
+  const { organizationId, channels: all } = channels.data;
+  const selected = chooseChannel(channels.data, pickedId);
+  const selectedId = selected?.id ?? null;
 
   if (organizationId === null) {
     return (
@@ -96,7 +91,7 @@ function ChannelStep({ captureId, sourceText }: { captureId: string; sourceText:
   return (
     <div className="flex flex-col gap-6">
       <ChannelChoice channels={all} selectedId={selectedId} onSelect={setPickedId} />
-      {selected === undefined ? (
+      {selected === null ? (
         <p>
           None of your channels can be posted to from here yet. You can still save this as an idea.
         </p>

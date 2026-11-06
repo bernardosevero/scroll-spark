@@ -10,6 +10,20 @@ const SERVICE_NAMES: Record<string, string> = {
   instagram: "Instagram",
 };
 
+const LANGUAGE_LABELS: Record<string, string> = {
+  same: "Same as my recent posts",
+  english: "English",
+  portuguese: "Portuguese",
+  spanish: "Spanish",
+  french: "French",
+  german: "German",
+};
+
+/** The words for a draft language, as the editor's switch shows them. */
+export function languageLabel(language: string) {
+  return LANGUAGE_LABELS[language] ?? language;
+}
+
 export function serviceName(service: string) {
   return SERVICE_NAMES[service.toLowerCase()] ?? service;
 }
@@ -66,4 +80,35 @@ export function postFailureMessage(code: string | null, kind: "draft" | "queue")
       // Nothing was retried, so the post may or may not have reached Buffer.
       return "We couldn't confirm this reached Buffer, and we haven't tried again. Check Buffer before you try again, so it isn't posted twice. Your text is still here.";
   }
+}
+
+export function analysisFailureMessage(code: string | null) {
+  switch (code) {
+    case "LLM_REFUSED":
+      return "We couldn't analyze this one. Your capture is safe in your inbox.";
+    case "ANALYSIS_LIMIT_REACHED":
+      return "That's today's limit reached. Your capture is safe, so come back tomorrow.";
+    case "BUFFER_RATE_LIMITED":
+      return "Buffer is busy, so we couldn't check your channels. Your capture is safe, so try again in a few minutes.";
+    case "RECONNECT_REQUIRED":
+      return "Buffer needs you to connect again before we can check your channels. Your capture is safe.";
+    default:
+      return "That didn't work this time. Your capture is safe, so you can try again.";
+  }
+}
+
+const MIN_SAMPLES = 3;
+
+/** What the draft was written from, in words. Counts only. */
+export function voiceNote({ sampleCount, isMatched }: { sampleCount: number; isMatched: boolean }) {
+  if (isMatched) {
+    return `Written from your last ${String(sampleCount)} posts on this channel.`;
+  }
+
+  const found =
+    sampleCount === 0
+      ? "no usable posts"
+      : `only ${String(sampleCount)} usable post${sampleCount === 1 ? "" : "s"}`;
+
+  return `We found ${found} on this channel, and a draft needs ${String(MIN_SAMPLES)} to sound like you. This one is in a plain voice, so make it yours.`;
 }

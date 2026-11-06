@@ -1,6 +1,6 @@
 import type { ChannelView } from "@scroll-spark/api/client";
 
-import { serviceName } from "./ship-messages";
+import { serviceName } from "@scroll-spark/ui/ship-messages";
 
 /** Pick the channel to write for. Channels that can't be posted to stay visible, and say why. */
 export function ChannelChoice({

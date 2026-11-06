@@ -11,6 +11,7 @@
     "./auth/auth.service": "./src/auth/auth.service.ts",
     "./auth/schemas": "./src/auth/schemas.ts",
     "./buffer/buffer.service": "./src/buffer/buffer.service.ts",
+    "./buffer/channel-choice": "./src/buffer/channel-choice.ts",
     "./buffer/channel-settings.service": "./src/buffer/channel-settings.service.ts",
     "./buffer/schemas": "./src/buffer/schemas.ts",
     "./capture/capture.service": "./src/capture/capture.service.ts",

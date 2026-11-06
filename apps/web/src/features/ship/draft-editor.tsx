@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { useId, useState } from "react";
+import { useState } from "react";
 
 import {
   DRAFT_LANGUAGES,
@@ -13,51 +13,19 @@ import {
 import type { ChannelView, DraftResult } from "@scroll-spark/api/client";
 import { useTRPC } from "@scroll-spark/api/react";
 import { Button } from "@scroll-spark/ui/button";
-import { SparkBurst } from "@scroll-spark/ui/spark-burst";
-import { TextAreaField } from "@scroll-spark/ui/text-area-field";
+import { DraftEditorView } from "@scroll-spark/ui/draft-editor-view";
+import {
+  draftFailureMessage,
+  languageLabel,
+  postFailureMessage,
+  serviceName,
+  voiceNote,
+} from "@scroll-spark/ui/ship-messages";
 
 import { SessionOver } from "../capture/session-over";
-import { draftFailureMessage, postFailureMessage, serviceName } from "./ship-messages";
 
 type Language = (typeof DRAFT_LANGUAGES)[number];
 type Kind = "draft" | "queue";
-
-const LANGUAGE_LABELS: Record<Language, string> = {
-  same: "Same as my recent posts",
-  english: "English",
-  portuguese: "Portuguese",
-  spanish: "Spanish",
-  french: "French",
-  german: "German",
-};
-
-const MIN_SAMPLES = 3;
-
-function voiceNote({ sampleCount, isMatched }: DraftResult["voice"]) {
-  if (isMatched) {
-    return `Written from your last ${String(sampleCount)} posts on this channel.`;
-  }
-
-  const found =
-    sampleCount === 0
-      ? "no usable posts"
-      : `only ${String(sampleCount)} usable post${sampleCount === 1 ? "" : "s"}`;
-
-  return `We found ${found} on this channel, and a draft needs ${String(MIN_SAMPLES)} to sound like you. This one is in a plain voice, so make it yours.`;
-}
-
-function Counter({ id, count, limit }: { id: string; count: number; limit: number | null }) {
-  const over = limit === null ? 0 : count - limit;
-
-  return (
-    <p id={id} className={`text-sm ${over > 0 ? "font-bold text-danger" : ""}`}>
-      {limit === null
-        ? `${String(count)} characters`
-        : `${String(count)} of ${String(limit)} characters`}
-      {over > 0 && `. That's ${String(over)} over, so shorten it to post.`}
-    </p>
-  );
-}
 
 function WriteDraft({
   captureId,
@@ -96,7 +64,7 @@ function WriteDraft({
         >
           {DRAFT_LANGUAGES.map((value) => (
             <option key={value} value={value}>
-              {LANGUAGE_LABELS[value]}
+              {languageLabel(value)}
             </option>
           ))}
         </select>
@@ -124,42 +92,6 @@ function WriteDraft({
   );
 }
 
-function PostButtons({
-  channel,
-  isBlocked,
-  sent,
-  onPost,
-  isPending,
-}: {
-  channel: ChannelView;
-  isBlocked: boolean;
-  sent: Kind | null;
-  onPost: (kind: Kind) => void;
-  isPending: boolean;
-}) {
-  return (
-    <div className="flex flex-wrap gap-3">
-      <Button
-        disabled={isBlocked || isPending || sent === "draft"}
-        onClick={() => {
-          onPost("draft");
-        }}
-      >
-        Save as draft
-      </Button>
-      <Button
-        variant="plain"
-        disabled={isBlocked || isPending || sent === "queue"}
-        onClick={() => {
-          onPost("queue");
-        }}
-      >
-        Add to {serviceName(channel.service)} queue
-      </Button>
-    </div>
-  );
-}
-
 export function DraftEditor({
   captureId,
   channel,
@@ -170,7 +102,6 @@ export function DraftEditor({
   sourceText: string;
 }) {
   const trpc = useTRPC();
-  const counterId = useId();
   const [text, setText] = useState("");
   const [voice, setVoice] = useState<DraftResult["voice"] | null>(null);
   const [sent, setSent] = useState<{ kind: Kind; channelId: string; text: string } | null>(null);
@@ -190,71 +121,51 @@ export function DraftEditor({
   const code = appCodeOf(post.error);
 
   return (
-    <div className="flex flex-col gap-4">
-      <WriteDraft
-        captureId={captureId}
-        channel={channel}
-        onWriting={() => {
-          post.reset();
-        }}
-        onWritten={(result) => {
-          setText(result.text);
-          setVoice(result.voice);
-        }}
-      />
-      {voice !== null && (
-        <>
-          <h3 className="font-display text-2xl font-extrabold">Sounds like you?</h3>
-          <p>{voiceNote(voice)}</p>
-        </>
-      )}
-      <TextAreaField
-        label="Your draft"
-        value={text}
-        placeholder="Write your own, or ask for a draft above."
-        aria-describedby={counterId}
-        onChange={(event) => {
-          setText(event.target.value);
-        }}
-      />
-      <Counter id={counterId} count={count} limit={limit} />
-      {findOverlap(text, sourceText).isClose && (
-        <p role="status" className="font-medium">
-          Parts of this are close to the post you captured. Put them in your own words before you
-          share it.
-        </p>
-      )}
-      <PostButtons
-        channel={channel}
-        isBlocked={isBlocked}
-        sent={isSentNow}
-        isPending={post.isPending}
-        onPost={(kind) => {
-          setSent(null);
-          post.mutate({ captureId, channelId: channel.id, text, kind });
-        }}
-      />
-      {post.isPending && <p role="status">Sending it to Buffer…</p>}
-      {post.isSuccess && (
-        <div className={isSentNow === null ? "relative hidden" : "relative"}>
-          {isSentNow !== null && (
-            <p role="status" className="font-bold">
-              {isSentNow === "draft"
-                ? `Saved as a draft in Buffer for ${title}.`
-                : `Added to the ${serviceName(channel.service)} queue in Buffer for ${title}.`}
-            </p>
-          )}
-          {post.variables.kind === "queue" && <SparkBurst />}
-        </div>
-      )}
-      {post.isError &&
+    <DraftEditorView
+      toolbar={
+        <WriteDraft
+          captureId={captureId}
+          channel={channel}
+          onWriting={() => {
+            post.reset();
+          }}
+          onWritten={(result) => {
+            setText(result.text);
+            setVoice(result.voice);
+          }}
+        />
+      }
+      voiceNote={voice === null ? null : voiceNote(voice)}
+      text={text}
+      onTextChange={setText}
+      count={count}
+      limit={limit}
+      isCloseToSource={findOverlap(text, sourceText).isClose}
+      serviceLabel={serviceName(channel.service)}
+      isBlocked={isBlocked}
+      isSending={post.isPending}
+      sentKind={isSentNow}
+      sentMessage={
+        isSentNow === null
+          ? null
+          : isSentNow === "draft"
+            ? `Saved as a draft in Buffer for ${title}.`
+            : `Added to the ${serviceName(channel.service)} queue in Buffer for ${title}.`
+      }
+      error={
+        post.isError &&
         (code === "NOT_SIGNED_IN" ? (
           <SessionOver />
         ) : (
           <p role="alert" className="font-medium text-danger">
             {postFailureMessage(code, post.variables.kind)}
           </p>
-        ))}
-    </div>
+        ))
+      }
+      onSend={(kind) => {
+        setSent(null);
+        post.mutate({ captureId, channelId: channel.id, text, kind });
+      }}
+    />
   );
 }
