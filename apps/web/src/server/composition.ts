@@ -5,6 +5,7 @@ import { createAnalysisService } from "@scroll-spark/core/analysis/analysis.serv
 import type { LlmGateway } from "@scroll-spark/core/analysis/analysis.service";
 import { createAuthService } from "@scroll-spark/core/auth/auth.service";
 import { createCaptureService } from "@scroll-spark/core/capture/capture.service";
+import { createExtensionTokenService } from "@scroll-spark/core/extension-token/extension-token.service";
 import type { Logger } from "@scroll-spark/core/logging/logger";
 import { createPingService } from "@scroll-spark/core/ping/ping.service";
 
@@ -14,16 +15,19 @@ import { pkceCrypto } from "./auth/pkce";
 import {
   createMemoryAnalysisRepository,
   createMemoryCaptureRepository,
+  createMemoryExtensionTokenRepository,
   createMemoryUserSettings,
   fakeLinkReader,
   fakeLlm,
 } from "./capture/fakes";
 import { createLinkReader } from "./capture/link-reader";
+import { tokenCrypto } from "./extension-token/token-crypto";
 import { createSafeGet } from "./capture/safe-get";
 import { createSealer } from "./crypto/seal";
 import { createAnalysisRepository, createUserSettingsRepository } from "./db/analysis-repository";
 import { createCaptureRepository } from "./db/capture-repository";
 import { createDb } from "./db/client";
+import { createExtensionTokenRepository } from "./db/extension-token-repository";
 import { createGrantRepository } from "./db/grant-repository";
 import { getEnv } from "./env";
 import { createAnthropicGateway } from "./llm/anthropic-gateway";
@@ -77,6 +81,7 @@ function composeStores() {
       captures: createMemoryCaptureRepository(),
       analyses: createMemoryAnalysisRepository(),
       settings: createMemoryUserSettings(),
+      extensionTokens: createMemoryExtensionTokenRepository(),
     };
   }
 
@@ -86,6 +91,7 @@ function composeStores() {
     captures: createCaptureRepository({ db }),
     analyses: createAnalysisRepository({ db }),
     settings: createUserSettingsRepository({ db }),
+    extensionTokens: createExtensionTokenRepository({ db }),
   };
 }
 
@@ -104,7 +110,7 @@ function composeLlm(logger: Logger): LlmGateway {
 }
 
 function composeProductServices(logger: Logger) {
-  const { captures, analyses, settings } = composeStores();
+  const { captures, analyses, settings, extensionTokens } = composeStores();
   const linkReader =
     getEnv().E2E_FAKES === undefined
       ? createLinkReader({ get: createSafeGet(), logger })
@@ -112,6 +118,11 @@ function composeProductServices(logger: Logger) {
 
   return {
     capture: createCaptureService({ captures, linkReader }),
+    extensionTokens: createExtensionTokenService({
+      tokens: extensionTokens,
+      crypto: tokenCrypto,
+      clock,
+    }),
     analysis: createAnalysisService({
       llm: composeLlm(logger),
       analyses,

@@ -17,16 +17,23 @@ import {
 } from "@scroll-spark/core/capture/schemas";
 import { AppError } from "@scroll-spark/core/errors/app-error";
 import type { AppErrorCode } from "@scroll-spark/core/errors/app-error";
+import type { ExtensionTokenService } from "@scroll-spark/core/extension-token/extension-token.service";
+import {
+  connectedTokenSchema,
+  extensionTokenSchema,
+  revokeTokenInputSchema,
+} from "@scroll-spark/core/extension-token/schemas";
 import type { PingService } from "@scroll-spark/core/ping/ping.service";
 import { pingInputSchema, pingOutputSchema } from "@scroll-spark/core/ping/schemas";
 
-export interface ApiContext {
-  /** Null when nobody is signed in. */
-  userId: string | null;
+import type { Caller } from "./context";
+
+export interface ApiContext extends Caller {
   services: {
     ping: PingService;
     capture: CaptureService;
     analysis: AnalysisService;
+    extensionTokens: ExtensionTokenService;
   };
 }
 
@@ -69,6 +76,15 @@ const signedInProcedure = procedure.use(({ ctx, next }) => {
   return next({ ctx: { userId: ctx.userId } });
 });
 
+/** For the website only: a side panel's token must not be able to mint or revoke tokens. */
+const sessionProcedure = signedInProcedure.use(({ ctx, next }) => {
+  if (ctx.credential !== "session") {
+    throw new AppError("NOT_SIGNED_IN");
+  }
+
+  return next();
+});
+
 /** Routers are one-line forwards. Decisions live in `core` services. */
 export const appRouter = trpc.router({
   ping: procedure
@@ -96,6 +112,18 @@ export const appRouter = trpc.router({
       .input(captureIdInputSchema)
       .output(capturedAnalysisSchema)
       .mutation(({ ctx, input }) => ctx.services.analysis.analyze(ctx.userId, input)),
+  }),
+
+  extension: trpc.router({
+    connect: sessionProcedure
+      .output(connectedTokenSchema)
+      .mutation(({ ctx }) => ctx.services.extensionTokens.connect(ctx.userId)),
+    list: sessionProcedure
+      .output(extensionTokenSchema.array())
+      .query(({ ctx }) => ctx.services.extensionTokens.list(ctx.userId)),
+    revoke: sessionProcedure
+      .input(revokeTokenInputSchema)
+      .mutation(({ ctx, input }) => ctx.services.extensionTokens.revoke(ctx.userId, input)),
   }),
 
   settings: trpc.router({

@@ -29,6 +29,13 @@
       "when": 1793969167895,
       "tag": "0003_dapper_the_phantom",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793971211121,
+      "tag": "0004_flippant_baron_strucker",
+      "breakpoints": true
     }
   ]
 }

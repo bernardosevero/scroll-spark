@@ -12,6 +12,8 @@
     "./capture/limits": "./src/capture/limits.ts",
     "./capture/schemas": "./src/capture/schemas.ts",
     "./errors/app-error": "./src/errors/app-error.ts",
+    "./extension-token/extension-token.service": "./src/extension-token/extension-token.service.ts",
+    "./extension-token/schemas": "./src/extension-token/schemas.ts",
     "./logging/logger": "./src/logging/logger.ts",
     "./ping/ping.service": "./src/ping/ping.service.ts",
     "./ping/schemas": "./src/ping/schemas.ts",

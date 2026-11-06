@@ -47,6 +47,24 @@ export const captures = pgTable(
   (table) => [index("captures_user_newest").on(table.userId, table.createdAt.desc())],
 );
 
+/** A side panel's sign-in. It reaches this user's captures, and never Buffer directly. */
+export const extensionTokens = pgTable(
+  "extension_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** SHA-256 of the token, in hex. The token itself is never stored. */
+    tokenHash: text("token_hash").notNull().unique(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    /** Null while the token works. Once set, it never works again. */
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("extension_tokens_user").on(table.userId)],
+);
+
 /** What the AI returned for a capture. One per capture, so a second look spends nothing. */
 export const analyses = pgTable(
   "analyses",
