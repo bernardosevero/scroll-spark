@@ -16,3 +16,6 @@ next-env.d.ts
 
 .vercel
 .DS_Store
+
+# Agent worktrees
+.claude/worktrees/

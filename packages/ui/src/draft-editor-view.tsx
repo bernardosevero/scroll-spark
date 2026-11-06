@@ -2,6 +2,7 @@ import { useId } from "react";
 import type { ReactNode } from "react";
 
 import { Button } from "./button";
+import { SparkBurst } from "./spark-burst";
 import { TextAreaField } from "./text-area-field";
 
 export interface DraftEditorViewProps {
@@ -108,9 +109,12 @@ export function DraftEditorView({
       </div>
       {isSending && <p role="status">Sending it to Buffer…</p>}
       {sentMessage !== null && (
-        <p role="status" className="font-bold">
-          {sentMessage}
-        </p>
+        <div className="relative">
+          <p role="status" className="font-bold">
+            {sentMessage}
+          </p>
+          {sentKind === "queue" && <SparkBurst />}
+        </div>
       )}
       {error}
     </div>

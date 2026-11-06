@@ -1,6 +1,7 @@
 import { Button, ButtonLink } from "@scroll-spark/ui/button";
 import { Card } from "@scroll-spark/ui/card";
 import { Reveal } from "@scroll-spark/ui/reveal";
+import { SparkBurst } from "@scroll-spark/ui/spark-burst";
 import { SparkMark } from "@scroll-spark/ui/spark-mark";
 
 export interface Sent {
@@ -25,7 +26,8 @@ export function DoneStage({
 }) {
   return (
     <Reveal>
-      <Card isFeatured className="flex flex-col items-stretch gap-4 p-4!">
+      <Card isFeatured className="relative flex flex-col items-stretch gap-4 p-4!">
+        {sent.kind === "queue" && <SparkBurst />}
         <h2 className="flex items-center gap-2 font-display text-2xl leading-7 font-extrabold tracking-tight">
           <SparkMark size={22} />
           {sent.kind === "draft" ? "Draft saved" : "Added to the queue"}

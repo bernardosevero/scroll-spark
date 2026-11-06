@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { Card } from "./card";
+import { SparkWait } from "./spark-wait";
 
 export type AnalysisCardProps = (
   | {
@@ -21,9 +22,12 @@ export function AnalysisCard(props: AnalysisCardProps) {
   if (props.status === "finding") {
     return (
       <Card isFeatured className={`flex flex-col items-start gap-4 ${className}`}>
-        <p role="status" className="font-display text-3xl font-extrabold">
-          Finding the spark…
-        </p>
+        <SparkWait
+          steps={[
+            { label: "Saved to your inbox", isDone: true },
+            { label: "Finding the spark…", isDone: false },
+          ]}
+        />
       </Card>
     );
   }

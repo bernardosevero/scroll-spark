@@ -7,7 +7,21 @@ import type { DraftEditorViewProps } from "./draft-editor-view";
 import { FitCheck } from "./fit-check";
 import { TrendsLinks } from "./trends-links";
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllGlobals();
+});
+
+function setReducedMotion(isReduced: boolean) {
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches: isReduced && query.includes("reduce"),
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+  }));
+}
 
 describe("analysis card", () => {
   it("shows the topic, angle and summary, with the angle as the heading", () => {
@@ -39,7 +53,7 @@ describe("analysis card", () => {
   it("says it is finding the spark while it waits", () => {
     render(<AnalysisCard status="finding" />);
 
-    expect(screen.getByRole("status").textContent).toBe("Finding the spark…");
+    expect(screen.getByRole("status").textContent).toContain("Finding the spark…");
   });
 
   it("announces a failure, and shows the action beside it", () => {
@@ -55,12 +69,29 @@ describe("analysis card", () => {
 });
 
 describe("fit check", () => {
+  const rows = [
+    { channel: "LinkedIn", verdict: "fits", detail: "3 posts", matchCount: 3 },
+    { channel: "X", verdict: "new", detail: "No posts", matchCount: 0 },
+  ] as const;
+
+  it("fans out posts only for a channel with matches", () => {
+    setReducedMotion(false);
+    render(<FitCheck rows={[...rows]} duplicateNote={null} />);
+
+    expect(screen.getAllByTestId("fit-reveal")).toHaveLength(1);
+  });
+
   it("lists a row per channel with counts and dates, and the duplicate note", () => {
     render(
       <FitCheck
         rows={[
-          { channel: "LinkedIn", verdict: "fits", detail: "3 posts, last posted Oct 2" },
-          { channel: "X", verdict: "new", detail: "No posts on this topic" },
+          {
+            channel: "LinkedIn",
+            verdict: "fits",
+            detail: "3 posts, last posted Oct 2",
+            matchCount: 3,
+          },
+          { channel: "X", verdict: "new", detail: "No posts on this topic", matchCount: 0 },
         ]}
         duplicateNote="You saved 1 Idea about this."
       />,
@@ -115,6 +146,16 @@ describe("trends links", () => {
   });
 });
 
+describe("finding the spark", () => {
+  it("says what's done and what's still happening", () => {
+    setReducedMotion(false);
+    render(<AnalysisCard status="finding" />);
+
+    expect(screen.getByText("Saved to your inbox")).toBeTruthy();
+    expect(screen.getByText("Finding the spark…")).toBeTruthy();
+  });
+});
+
 describe("draft editor", () => {
   const base: DraftEditorViewProps = {
     toolbar: <button>Write a draft</button>,
@@ -132,6 +173,24 @@ describe("draft editor", () => {
     error: null,
     onSend: vi.fn(),
   };
+
+  it.each([
+    ["queue", 1],
+    ["draft", 0],
+  ] as const)("celebrates a queued post only: %s", (sentKind, bursts) => {
+    setReducedMotion(false);
+    render(<DraftEditorView {...base} sentKind={sentKind} sentMessage="It went." />);
+
+    expect(screen.getByText("It went.")).toBeTruthy();
+    expect(screen.queryAllByTestId("spark-burst")).toHaveLength(bursts);
+  });
+
+  it("doesn't celebrate before the post has gone", () => {
+    setReducedMotion(false);
+    render(<DraftEditorView {...base} isSending />);
+
+    expect(screen.queryByTestId("spark-burst")).toBeNull();
+  });
 
   it("makes Save as draft the main action, and names the channel on the queue button", () => {
     render(<DraftEditorView {...base} />);

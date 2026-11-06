@@ -1,12 +1,16 @@
 import { useId } from "react";
 import type { ReactNode } from "react";
 
+import { FitReveal } from "./fit-reveal";
 import { FitRow } from "./fit-row";
 import type { FitRowProps } from "./fit-row";
 
 export interface FitCheckProps {
   /** One row per channel, already worded. Empty when no fit check ran. */
-  rows: FitRowProps[];
+  rows: (FitRowProps & {
+    /** How many of the channel's posts match, so the reveal can fan them out and count them. */
+    matchCount: number;
+  })[];
   /** Ideas and queued posts that already cover this, in words. Null means nothing to say. */
   duplicateNote: string | null;
   /** Shown when there are no rows, such as a link to choose channels. */
@@ -36,9 +40,11 @@ export function FitCheck({ rows, duplicateNote, emptyAction }: FitCheckProps) {
     <section aria-labelledby={titleId} className="flex flex-col gap-3">
       {title}
       <ul className="flex flex-col gap-3">
-        {rows.map((row) => (
+        {rows.map(({ matchCount, ...row }, index) => (
           <li key={row.channel}>
-            <FitRow {...row} />
+            <FitReveal matchCount={matchCount} index={index}>
+              <FitRow {...row} />
+            </FitReveal>
           </li>
         ))}
       </ul>

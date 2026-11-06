@@ -11,6 +11,10 @@ test("the design system page shows every specimen", async ({ page }) => {
 
   await page.getByRole("button", { name: "Replay" }).click();
   await expect(page.getByTestId("spark-burst")).toBeAttached();
+
+  for (const moment of ["fit-reveal", "spark-wait", "idea-flight", "post-lift"]) {
+    await expect(page.getByTestId(moment).first()).toBeAttached();
+  }
 });
 
 test.describe("when someone asks for reduced motion", () => {
@@ -23,5 +27,12 @@ test.describe("when someone asks for reduced motion", () => {
 
     await expect(page.getByText("Celebration, under 800 ms.")).toBeVisible();
     await expect(page.getByTestId("spark-burst")).toHaveCount(0);
+
+    for (const moment of ["fit-reveal", "spark-wait", "idea-flight", "post-lift"]) {
+      await expect(page.getByTestId(moment)).toHaveCount(0);
+    }
+
+    await expect(page.getByText("Finding the spark…")).toBeVisible();
+    await expect(page.getByText("Saved to Buffer Ideas")).toBeVisible();
   });
 });

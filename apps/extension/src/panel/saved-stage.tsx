@@ -1,5 +1,6 @@
 import { Button, ButtonLink } from "@scroll-spark/ui/button";
 import { Card } from "@scroll-spark/ui/card";
+import { IdeaFlight } from "@scroll-spark/ui/idea-flight";
 import { Reveal } from "@scroll-spark/ui/reveal";
 import { SparkMark } from "@scroll-spark/ui/spark-mark";
 
@@ -18,10 +19,12 @@ export function SavedStage({
   return (
     <Reveal>
       <Card isFeatured className="flex flex-col items-stretch gap-4 p-4!">
-        <h2 className="flex items-center gap-2 font-display text-2xl leading-7 font-extrabold tracking-tight">
-          <SparkMark size={22} />
-          Saved to Buffer Ideas
-        </h2>
+        <IdeaFlight shouldFly>
+          <h2 className="flex items-center gap-2 font-display text-2xl leading-7 font-extrabold tracking-tight">
+            <SparkMark size={22} />
+            Saved to Buffer Ideas
+          </h2>
+        </IdeaFlight>
         <p className="font-medium">It&apos;s in your inbox on the website too.</p>
         <Button onClick={onDraft}>Draft a post</Button>
         <ButtonLink

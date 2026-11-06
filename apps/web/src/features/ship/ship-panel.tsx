@@ -6,6 +6,7 @@ import { useState } from "react";
 import { appCodeOf, chooseChannel } from "@scroll-spark/api/client";
 import { useTRPC } from "@scroll-spark/api/react";
 import { Button, ButtonLink } from "@scroll-spark/ui/button";
+import { IdeaFlight } from "@scroll-spark/ui/idea-flight";
 
 import { SessionOver } from "../capture/session-over";
 import { ChannelChoice } from "./channel-choice";
@@ -27,9 +28,11 @@ function SaveIdea({ captureId }: { captureId: string }) {
 
   if (idea.data?.ideaId != null) {
     return (
-      <p role="status" className="font-bold">
-        Saved to Buffer Ideas
-      </p>
+      <IdeaFlight shouldFly={save.isSuccess}>
+        <p role="status" className="font-bold">
+          Saved to Buffer Ideas
+        </p>
+      </IdeaFlight>
     );
   }
 

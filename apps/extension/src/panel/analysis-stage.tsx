@@ -20,7 +20,10 @@ function FitSection({ analysis, webOrigin }: { analysis: Analysis; webOrigin: st
 
   return (
     <FitCheck
-      rows={(channels ?? []).map((fit) => describeChannelFit(fit, { now }))}
+      rows={(channels ?? []).map((fit) => ({
+        ...describeChannelFit(fit, { now }),
+        matchCount: fit.state === "fits" ? fit.matchingPosts : 0,
+      }))}
       duplicateNote={duplicates === null ? null : describeDuplicates(duplicates)}
       emptyAction={
         <ButtonLink href={`${webOrigin}/channels`} target="_blank" rel="noreferrer" variant="plain">
