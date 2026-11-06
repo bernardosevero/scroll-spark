@@ -10,6 +10,20 @@ const SERVICE_NAMES: Record<string, string> = {
   instagram: "Instagram",
 };
 
+const LANGUAGE_LABELS: Record<string, string> = {
+  same: "Same as my recent posts",
+  english: "English",
+  portuguese: "Portuguese",
+  spanish: "Spanish",
+  french: "French",
+  german: "German",
+};
+
+/** The words for a draft language, as the editor's switch shows them. */
+export function languageLabel(language: string) {
+  return LANGUAGE_LABELS[language] ?? language;
+}
+
 export function serviceName(service: string) {
   return SERVICE_NAMES[service.toLowerCase()] ?? service;
 }
