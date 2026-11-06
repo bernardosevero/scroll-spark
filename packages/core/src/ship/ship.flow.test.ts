@@ -33,6 +33,8 @@ const ANALYSIS: Analysis = {
   angle: "The quiet customer who changed what you built",
   trendPhrases: ["customer feedback", "product market fit"],
   model: "test-model",
+  channels: null,
+  duplicates: null,
   createdAt: NOW.toISOString(),
 };
 

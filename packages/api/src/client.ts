@@ -16,6 +16,7 @@ export { findOverlap } from "@scroll-spark/core/ship/overlap";
 export { DRAFT_LANGUAGES } from "@scroll-spark/core/ship/schemas";
 export type { DraftResult } from "@scroll-spark/core/ship/schemas";
 export type { Capture, CapturePlatform } from "@scroll-spark/core/capture/schemas";
+export { describeChannelFit, describeDuplicates } from "@scroll-spark/core/fit/fit-copy";
 
 export type { ConnectedToken, ExtensionToken } from "@scroll-spark/core/extension-token/schemas";
 

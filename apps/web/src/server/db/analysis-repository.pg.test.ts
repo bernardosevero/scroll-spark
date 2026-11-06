@@ -33,6 +33,8 @@ describe.skipIf(databaseUrl === undefined)("analysis repository on real Postgres
     topic,
     angle: "An angle.",
     trendPhrases: ["one", "two"],
+    channels: null,
+    duplicates: null,
     model: "test-model",
     createdAt: "2026-11-06T12:00:00.000Z",
   });
@@ -46,6 +48,54 @@ describe.skipIf(databaseUrl === undefined)("analysis repository on real Postgres
     await analyses.save(userId, analysisOf(captureId));
 
     await expect(analyses.find(captureId)).resolves.toEqual(analysisOf(captureId));
+  });
+
+  it("keeps the fit it was saved with", async () => {
+    const { userId, captureId } = await createCapture("fit");
+    const fit = {
+      channels: [
+        {
+          channelId: "ch-1",
+          channelName: "LinkedIn",
+          state: "fits" as const,
+          usablePosts: 12,
+          readPosts: 14,
+          clusterName: "AI tools",
+          matchingPosts: 3,
+          lastPostedAt: "2026-09-29T14:00:00.000Z",
+          nextScheduledAt: null,
+        },
+      ],
+      duplicates: { ideas: 2, queuedPosts: 0 },
+    };
+
+    await analyses.save(userId, { ...analysisOf(captureId), ...fit });
+
+    await expect(analyses.find(captureId)).resolves.toMatchObject(fit);
+  });
+
+  it("reads a row from before the fit check as having no fit yet", async () => {
+    const { userId, captureId } = await createCapture("legacy");
+    await analyses.save(userId, analysisOf(captureId));
+    await pool.query(
+      "UPDATE analyses SET channels = NULL, duplicates = NULL WHERE capture_id = $1",
+      [captureId],
+    );
+
+    await expect(analyses.find(captureId)).resolves.toMatchObject({
+      channels: null,
+      duplicates: null,
+    });
+  });
+
+  it("reads a fit that no longer parses as no fit yet", async () => {
+    const { userId, captureId } = await createCapture("odd-fit");
+    await analyses.save(userId, analysisOf(captureId));
+    await pool.query(`UPDATE analyses SET channels = '[{"old": "shape"}]' WHERE capture_id = $1`, [
+      captureId,
+    ]);
+
+    await expect(analyses.find(captureId)).resolves.toMatchObject({ channels: null });
   });
 
   it("keeps the first answer when two requests race", async () => {

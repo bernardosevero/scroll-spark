@@ -10,6 +10,7 @@ import { createChannelSettingsService } from "@scroll-spark/core/buffer/channel-
 import { createCaptureService } from "@scroll-spark/core/capture/capture.service";
 import { createExtensionTokenService } from "@scroll-spark/core/extension-token/extension-token.service";
 import { AppError } from "@scroll-spark/core/errors/app-error";
+import { createFitService } from "@scroll-spark/core/fit/fit.service";
 import type { Logger } from "@scroll-spark/core/logging/logger";
 import { createPingService } from "@scroll-spark/core/ping/ping.service";
 import { createShipService } from "@scroll-spark/core/ship/ship.service";
@@ -30,6 +31,7 @@ import {
   createMemoryAccountRepository,
   createMemoryAnalysisRepository,
   createMemoryCaptureRepository,
+  createMemoryProfileRepository,
   createMemoryExtensionTokenRepository,
   createMemoryUserSettings,
   fakeLinkReader,
@@ -48,6 +50,7 @@ import {
 } from "./db/buffer-repository";
 import { createCaptureRepository } from "./db/capture-repository";
 import { createDb } from "./db/client";
+import { createProfileRepository } from "./db/fit-repository";
 import { createExtensionTokenRepository } from "./db/extension-token-repository";
 import { createGrantRepository } from "./db/grant-repository";
 import { createDraftRunRepository, createIdeaLinkRepository } from "./db/ship-repository";
@@ -104,6 +107,7 @@ function composeStores() {
     const captures = createMemoryCaptureRepository();
     const analyses = createMemoryAnalysisRepository();
     const settings = createMemoryUserSettings();
+    const profiles = createMemoryProfileRepository();
     const ideaLinks = createMemoryIdeaLinks();
     const draftRuns = createMemoryDraftRuns();
     const extensionTokens = createMemoryExtensionTokenRepository();
@@ -112,6 +116,7 @@ function composeStores() {
       captures,
       analyses,
       settings,
+      profiles,
       ideaLinks,
       draftRuns,
       extensionTokens,
@@ -119,6 +124,7 @@ function composeStores() {
         captures,
         analyses,
         settings,
+        profiles,
         extensionTokens,
         ideaLinks,
         draftRuns,
@@ -135,6 +141,7 @@ function composeStores() {
     captures: createCaptureRepository({ db }),
     analyses: createAnalysisRepository({ db }),
     settings: createUserSettingsRepository({ db }),
+    profiles: createProfileRepository({ db }),
     ideaLinks: createIdeaLinkRepository({ db }),
     draftRuns: createDraftRunRepository({ db }),
     extensionTokens: createExtensionTokenRepository({ db }),
@@ -185,7 +192,10 @@ function composeLlm(logger: Logger): LlmGateway {
   // No retries, since each one costs money, and a timeout under the route's own limit.
   const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY ?? "", maxRetries: 0, timeout: 50_000 });
 
-  return createAnthropicGateway({ parse: (request) => client.messages.parse(request), logger });
+  return createAnthropicGateway({
+    parse: (request, options) => client.messages.parse(request, options),
+    logger,
+  });
 }
 
 function composeDraftWriter(logger: Logger): DraftWriter {
@@ -204,8 +214,9 @@ function composeDraftWriter(logger: Logger): DraftWriter {
 
 function composeProductServices(logger: Logger, oauth: OAuthContext | null) {
   const stores = composeStores();
-  const { captures, analyses, settings, accounts, extensionTokens } = stores;
+  const { captures, analyses, settings, accounts, extensionTokens, profiles } = stores;
   const { buffer, channels } = composeBuffer(logger, oauth, stores);
+  const llm = composeLlm(logger);
   const linkReader =
     getEnv().E2E_FAKES === undefined
       ? createLinkReader({ get: createSafeGet(), logger })
@@ -220,10 +231,11 @@ function composeProductServices(logger: Logger, oauth: OAuthContext | null) {
       clock,
     }),
     analysis: createAnalysisService({
-      llm: composeLlm(logger),
+      llm,
       analyses,
       captures,
       settings,
+      fit: createFitService({ buffer, channels, profiles, llm, clock, logger }),
       clock,
     }),
     channels,

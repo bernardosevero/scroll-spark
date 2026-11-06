@@ -36,7 +36,34 @@ flowchart TB
   adapters -- link reader, SSRF checked --> web[YouTube oEmbed and public pages]
 ```
 
-**Tables so far:** `users` (also holds the chosen Buffer organization and default channels), `buffer_grants`, `captures` (with `buffer_idea_id`, the only trace of a saved Idea), `analyses`, `draft_runs` (one row per draft requested, no text, for the daily limit), `buffer_cache`, `buffer_quota`, `extension_tokens`.
+**Tables so far:** `users` (also holds the chosen Buffer organization and default channels), `buffer_grants`, `captures`, `analyses`, `buffer_cache`, `buffer_quota`, `extension_tokens`, and the fit check's `channel_profiles` (one row per channel, with `profile_refreshed_at`), `channel_posts` (cleaned text, one-line summary, cluster, real dates) and `channel_clusters`. `analyses` also holds `channels` and `duplicates`, the fit as it was when the analysis ran, both null for older rows, `draft_runs`.
+
+## The fit check
+
+`capture.analyze` runs `fit.prepare` before the model, then `fit.resolve` after it. The model only names things by ID. Every count and date comes from our own `channel_posts` rows.
+
+```mermaid
+flowchart TB
+  start[analysis.analyze] --> chans[Readable channels of the chosen organization, defaults first, at most 6]
+  chans --> fresh{Profile under a day old?}
+  fresh -- yes --> use[Use the saved profile]
+  fresh -- no --> posts[buffer.posts, one page of 50 per channel, cache and quota first]
+  posts --> clean[cleanHistory: drop under 80 characters, merge copies, cut at 500]
+  clean --> thin{3 or more usable posts?}
+  thin -- no --> save[Save the posts only]
+  thin -- yes --> same{Same posts as the saved profile?}
+  same -- yes --> save
+  same -- no --> llm[One model call: summaries and 5 to 8 clusters]
+  llm --> save
+  use --> prompt[Summaries and cluster names go to the analysis call]
+  save --> prompt
+  prompt --> answer[Model returns IDs only]
+  answer --> drop[Drop unknown channel, cluster, post and idea IDs]
+  drop --> facts[Count posts and read last and next dates from our rows]
+  facts --> row[Saved with the analysis]
+```
+
+A profile that can't be built leaves that channel as "unavailable" and nothing is saved, so the next analysis tries again. An expired Buffer grant stops the analysis before the model is called. The duplicate check counts matched Ideas (from the cached `buffer.ideas`) and matched scheduled posts.
 
 ## Every Buffer call
 

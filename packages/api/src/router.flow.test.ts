@@ -60,6 +60,9 @@ function createChannels(): ChannelSettingsService {
     channels: vi.fn(() => Promise.resolve(CHANNELS_VIEW)),
     setOrganization: vi.fn(() => Promise.resolve()),
     setDefaultChannels: vi.fn(() => Promise.resolve()),
+    historyChannels: vi.fn(() =>
+      Promise.resolve({ organizationId: "org-1", channels: [], defaultChannelIds: [] }),
+    ),
   };
 }
 

@@ -56,6 +56,7 @@ describe("design system", () => {
   it.each([
     ["fits", "Fits LinkedIn"],
     ["new", "New for LinkedIn"],
+    ["unclear", "LinkedIn"],
   ] as const)("words the %s verdict", (verdict, words) => {
     render(<FitRow channel="LinkedIn" verdict={verdict} detail="2 posts" />);
 

@@ -34,7 +34,7 @@ test.describe("with one organization", () => {
 
     await draftForLinkedIn(page);
     await expect(page.getByRole("heading", { name: "Sounds like you?" })).toBeVisible();
-    await expect(page.getByText("Written from your last 4 posts on this channel.")).toBeVisible();
+    await expect(page.getByText("Written from your last 8 posts on this channel.")).toBeVisible();
 
     await page.getByLabel("Your draft").fill(`${DRAFT} What did yours say?`);
     await page.getByRole("button", { name: "Save as draft" }).click();
@@ -157,7 +157,7 @@ test.describe("with one organization", () => {
 
     await page.getByRole("button", { name: "Write a draft" }).click();
 
-    await expect(page.getByText("We found no usable posts on this channel")).toBeVisible();
+    await expect(page.getByText("We found only 2 usable posts on this channel")).toBeVisible();
   });
 });
 

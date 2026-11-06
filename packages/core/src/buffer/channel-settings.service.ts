@@ -23,6 +23,15 @@ export interface ChannelSettingsService {
   channels(userId: string): Promise<ChannelsView>;
   setOrganization(userId: string, input: OrganizationIdInput): Promise<void>;
   setDefaultChannels(userId: string, input: ChannelIdsInput): Promise<void>;
+  /**
+   * Every channel in the chosen organization as Buffer reports it, whether or not we can post to
+   * it, because the fit check reads history from all of them.
+   */
+  historyChannels(userId: string): Promise<{
+    organizationId: string | null;
+    channels: BufferChannel[];
+    defaultChannelIds: string[];
+  }>;
 }
 
 /**
@@ -107,6 +116,20 @@ export function createChannelSettingsService({
         organizationId,
         channels,
         defaultChannelIds: (saved.defaultChannelIds ?? []).filter((id) => choosable.has(id)),
+      };
+    },
+
+    async historyChannels(userId) {
+      const { organizationId, saved } = await chosenOrganization(userId);
+
+      if (organizationId === null) {
+        return { organizationId: null, channels: [], defaultChannelIds: [] };
+      }
+
+      return {
+        organizationId,
+        channels: await buffer.channels(userId, organizationId),
+        defaultChannelIds: saved.defaultChannelIds ?? [],
       };
     },
 

@@ -3,12 +3,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 
-import { appCodeOf } from "@scroll-spark/api/client";
+import { appCodeOf, describeChannelFit, describeDuplicates } from "@scroll-spark/api/client";
 import type { CapturedAnalysis } from "@scroll-spark/api/client";
 import { useTRPC } from "@scroll-spark/api/react";
 import { Button, ButtonLink } from "@scroll-spark/ui/button";
 import { Card } from "@scroll-spark/ui/card";
 import { ChipLink } from "@scroll-spark/ui/chip-link";
+import { FitRow } from "@scroll-spark/ui/fit-row";
 import { Reveal } from "@scroll-spark/ui/reveal";
 
 import { SessionOver } from "../capture/session-over";
@@ -53,6 +54,46 @@ function useCapturedAnalysis(captureId: string) {
   );
 
   return { query, analyze };
+}
+
+type Analysis = NonNullable<CapturedAnalysis["analysis"]>;
+
+/** How the capture relates to each channel: counts and dates, never a prediction. */
+function FitCheck({ analysis }: { analysis: Analysis }) {
+  const { channels, duplicates } = analysis;
+  const now = new Date();
+
+  if (channels === null || channels.length === 0) {
+    return (
+      <section aria-labelledby="fit-title" className="flex flex-col items-start gap-2">
+        <h2 id="fit-title" className="font-display text-2xl font-extrabold">
+          How it fits your channels
+        </h2>
+        <p>There&apos;s no fit check for this one yet.</p>
+        <ButtonLink href="/channels" variant="plain">
+          Choose your channels
+        </ButtonLink>
+      </section>
+    );
+  }
+
+  const duplicateNote = duplicates === null ? null : describeDuplicates(duplicates);
+
+  return (
+    <section aria-labelledby="fit-title" className="flex flex-col gap-3">
+      <h2 id="fit-title" className="font-display text-2xl font-extrabold">
+        How it fits your channels
+      </h2>
+      <ul className="flex flex-col gap-3">
+        {channels.map((fit) => (
+          <li key={fit.channelId}>
+            <FitRow {...describeChannelFit(fit, { now })} />
+          </li>
+        ))}
+      </ul>
+      {duplicateNote !== null && <p className="font-medium">{duplicateNote}</p>}
+    </section>
+  );
 }
 
 function TrendsLinks({ captureId, data }: { captureId: string; data: CapturedAnalysis }) {
@@ -194,6 +235,7 @@ function AnalysisContent({
             </h1>
             <p>{analysis.summary}</p>
           </Card>
+          <FitCheck analysis={analysis} />
           <TrendsLinks captureId={captureId} data={data} />
           <ShipPanel captureId={captureId} sourceText={data.capture.text} />
           <SourceText data={data} />

@@ -1,5 +1,6 @@
 import type { Capture, CapturePlatform } from "../capture/schemas";
 import { AppError } from "../errors/app-error";
+import type { FitService, ProfileLlm, PromptChannel, PromptIdea } from "../fit/fit.service";
 import type { Clock } from "../time/clock";
 import { llmAnalysisSchema } from "./schemas";
 import type {
@@ -16,16 +17,21 @@ export const DAILY_ANALYSIS_LIMIT = 30;
 
 const DEFAULT_TRENDS_GEO = "US";
 
-export interface LlmGateway {
+export interface LlmGateway extends ProfileLlm {
   readonly model: string;
   /**
-   * Returns what the model said, unchecked, for the service to parse. The text is untrusted data,
-   * and the model gets no tools. Throws `LLM_REFUSED` or `LLM_FAILED`.
+   * Returns what the model said, unchecked, for the service to parse. The text, and the channel
+   * history beside it, are untrusted data, and the model gets no tools. Throws `LLM_REFUSED` or
+   * `LLM_FAILED`.
    */
   analyze(capture: {
     text: string;
     platform: CapturePlatform;
     sourceName: string | null;
+    /** Each channel's clusters and one-line summaries. Empty when there's nothing to compare. */
+    channels: PromptChannel[];
+    /** The user's existing Buffer Ideas. */
+    ideas: PromptIdea[];
   }): Promise<unknown>;
 }
 
@@ -61,12 +67,14 @@ export function createAnalysisService({
   analyses,
   captures,
   settings,
+  fit,
   clock,
 }: {
   llm: LlmGateway;
   analyses: AnalysisRepository;
   captures: CaptureLookup;
   settings: UserSettings;
+  fit: FitService;
   clock: Clock;
 }): AnalysisService {
   async function ownedCapture(userId: string, captureId: string) {
@@ -103,11 +111,17 @@ export function createAnalysisService({
       throw new AppError("ANALYSIS_LIMIT_REACHED");
     }
 
+    // Profiles come first. They're saved as they're built, so if the analysis then fails, trying
+    // again finds them ready and spends nothing on them.
+    const context = await fit.prepare(userId);
+
     const answer = llmAnalysisSchema.safeParse(
       await llm.analyze({
         text: capture.text,
         platform: capture.platform,
         sourceName: capture.sourceName,
+        channels: context.prompt.channels,
+        ideas: context.prompt.ideas,
       }),
     );
 
@@ -115,8 +129,11 @@ export function createAnalysisService({
       throw new AppError("LLM_FAILED");
     }
 
+    const { channels, matchingIdeaIds, ...analysis } = answer.data;
+
     return analyses.save(userId, {
-      ...answer.data,
+      ...analysis,
+      ...fit.resolve(context, { channels, matchingIdeaIds }),
       captureId: capture.id,
       model: llm.model,
       createdAt: clock.now().toISOString(),
