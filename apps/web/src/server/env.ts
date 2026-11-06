@@ -1,21 +1,45 @@
 import { z } from "zod";
 
-const envSchema = z.object({
-  NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
-  LOG_LEVEL: z.enum(["info", "warn", "error"]).default("info"),
-  // Optional only until the first database issue makes it required.
-  DATABASE_URL: z.preprocess(emptyToUndefined, z.url().optional()),
-  EXTENSION_ORIGIN: z.preprocess(
-    emptyToUndefined,
-    z.string().startsWith("chrome-extension://").optional(),
-  ),
-});
+const optional = <T extends z.ZodType>(schema: T) =>
+  z.preprocess((value) => (value === "" ? undefined : value), schema.optional());
+
+const secretKey = z
+  .base64()
+  .refine((value) => Buffer.from(value, "base64").length === 32, "must be 32 bytes, in base64");
+
+const REQUIRED_IN_PRODUCTION = [
+  "APP_URL",
+  "BUFFER_CLIENT_ID",
+  "BUFFER_CLIENT_SECRET",
+  "DATABASE_URL",
+  "SECRET_KEY",
+] as const;
+
+const envSchema = z
+  .object({
+    NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+    VERCEL_ENV: z.string().optional(),
+    LOG_LEVEL: z.enum(["info", "warn", "error"]).default("info"),
+    APP_URL: optional(z.url()),
+    BUFFER_CLIENT_ID: optional(z.string()),
+    BUFFER_CLIENT_SECRET: optional(z.string()),
+    DATABASE_URL: optional(z.url()),
+    EXTENSION_ORIGIN: optional(z.string().startsWith("chrome-extension://")),
+    SECRET_KEY: optional(secretKey),
+  })
+  .superRefine((env, context) => {
+    if (env.VERCEL_ENV !== "production") {
+      return;
+    }
+
+    for (const name of REQUIRED_IN_PRODUCTION) {
+      if (env[name] === undefined) {
+        context.addIssue({ code: "custom", path: [name], message: "is required in production" });
+      }
+    }
+  });
 
 export type Env = z.infer<typeof envSchema>;
-
-function emptyToUndefined(value: unknown) {
-  return value === "" ? undefined : value;
-}
 
 export function parseEnv(source: Record<string, string | undefined>): Env {
   return envSchema.parse(source);

@@ -2,7 +2,7 @@
 
 Capture a post you like while scrolling, see how it fits each of your channels, and turn it into your next post. Built on the Buffer API for the Buffer Commit contest.
 
-**Status:** project skeleton. A `ping` call runs through every layer, and real features start from the first issues.
+**Status:** in progress. Buffer sign-in is built, and it needs real credentials to try.
 
 ## Setup
 
@@ -30,23 +30,29 @@ To open the extension in Chrome, go to `chrome://extensions`, turn on Developer 
 
 ## Environment variables
 
-| Variable           | Needed                        | What it does                              |
-| ------------------ | ----------------------------- | ----------------------------------------- |
-| `DATABASE_URL`     | From the first database issue | Neon dev branch connection                |
-| `EXTENSION_ORIGIN` | Production                    | The one extension allowed to call the API |
-| `LOG_LEVEL`        | No                            | `info`, `warn` or `error`                 |
+| Variable                                   | Needed                             | What it does                                              |
+| ------------------------------------------ | ---------------------------------- | --------------------------------------------------------- |
+| `APP_URL`                                  | Production, and to sign in locally | `https://localhost:3000` in development                   |
+| `BUFFER_CLIENT_ID`, `BUFFER_CLIENT_SECRET` | Production, and to sign in locally | Your Buffer app client. Use the dev client locally.       |
+| `DATABASE_URL`                             | Production, and to sign in locally | Neon dev branch connection                                |
+| `SECRET_KEY`                               | Production, and to sign in locally | 32 random bytes in base64, from `openssl rand -base64 32` |
+| `EXTENSION_ORIGIN`                         | Production                         | The one extension allowed to call the API                 |
+| `LOG_LEVEL`                                | No                                 | `info`, `warn` or `error`                                 |
 
-`apps/web/src/server/env.ts` validates them at startup.
+`apps/web/src/server/env.ts` validates them at startup, and production refuses to start without them.
+
+Buffer requires HTTPS redirects, so run `pnpm dev:https` to test sign-in locally.
 
 ## Commands
 
-| Command                                       | What it does                                                                                 |
-| --------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| `pnpm dev`                                    | Runs the website and the extension build                                                     |
-| `pnpm verify`                                 | Lint, format check, types, tests, build, unused code                                         |
-| `pnpm e2e`                                    | Browser flows. First run: `pnpm --filter @scroll-spark/web exec playwright install chromium` |
-| `pnpm format`                                 | Formats everything                                                                           |
-| `pnpm --filter @scroll-spark/web db:generate` | New migration from the schema                                                                |
+| Command                                       | What it does                                                                                                           |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `pnpm dev`                                    | Runs the website and the extension build                                                                               |
+| `pnpm verify`                                 | Lint, format check, types, tests, build, unused code                                                                   |
+| `TEST_DATABASE_URL=… pnpm test`               | Also runs the refresh-lock test on a real Postgres, in a database whose name contains `test`. It resets that database. |
+| `pnpm e2e`                                    | Browser flows. First run: `pnpm --filter @scroll-spark/web exec playwright install chromium`                           |
+| `pnpm format`                                 | Formats everything                                                                                                     |
+| `pnpm --filter @scroll-spark/web db:generate` | New migration from the schema                                                                                          |
 
 ## Architecture
 

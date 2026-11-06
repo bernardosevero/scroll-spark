@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./auth/auth.service": "./src/auth/auth.service.ts",
+    "./auth/schemas": "./src/auth/schemas.ts",
     "./errors/app-error": "./src/errors/app-error.ts",
     "./logging/logger": "./src/logging/logger.ts",
     "./ping/ping.service": "./src/ping/ping.service.ts",

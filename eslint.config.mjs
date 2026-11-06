@@ -62,6 +62,12 @@ export default defineConfig([
     },
   },
 
+  // `expect(fake.method)` passes a method around on purpose.
+  {
+    files: ["**/*.test.{ts,tsx}"],
+    rules: { "@typescript-eslint/unbound-method": "off" },
+  },
+
   {
     files: ["**/*.mjs", "**/*.config.ts"],
     extends: [tseslint.configs.disableTypeChecked],
@@ -167,7 +173,7 @@ export default defineConfig([
     rules: { "no-console": "off" },
   },
   {
-    files: ["apps/web/e2e/**/*.ts"],
+    files: ["apps/web/e2e/**/*.ts", "apps/web/playwright.config.ts", "**/*.pg.test.ts"],
     rules: { "no-restricted-properties": "off" },
   },
 ]);
