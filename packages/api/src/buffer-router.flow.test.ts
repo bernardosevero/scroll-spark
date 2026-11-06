@@ -16,6 +16,9 @@ function setup(userId: string | null) {
     channels: vi.fn(() => Promise.resolve(CHANNELS_VIEW)),
     setOrganization: vi.fn(() => Promise.resolve()),
     setDefaultChannels: vi.fn(() => Promise.resolve()),
+    historyChannels: vi.fn(() =>
+      Promise.resolve({ organizationId: null, channels: [], defaultChannelIds: [] }),
+    ),
   };
   const caller = appRouter.createCaller({
     userId,

@@ -11,6 +11,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import type { CapturePlatform } from "@scroll-spark/core/capture/schemas";
+import type { ChannelFit, Duplicates } from "@scroll-spark/core/fit/schemas";
 
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -76,6 +77,13 @@ export const analyses = pgTable(
     topic: text("topic").notNull(),
     angle: text("angle").notNull(),
     trendPhrases: jsonb("trend_phrases").$type<string[]>().notNull(),
+    /**
+     * The fit for each channel when the analysis ran, with counts and dates from our own rows.
+     * Null means no fit yet: the row is from before the fit check, or there was no channel to check.
+     */
+    channels: jsonb("channels").$type<ChannelFit[]>(),
+    /** Ideas and queued posts that already cover the topic. Null means not checked. */
+    duplicates: jsonb("duplicates").$type<Duplicates>(),
     model: text("model").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
@@ -110,3 +118,60 @@ export const bufferQuota = pgTable("buffer_quota", {
   resetsAt: timestamp("resets_at", { withTimezone: true }).notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * One row per channel whose profile we've built. A channel with no row has none yet, and a profile
+ * is rebuilt only once `profileRefreshedAt` is a day old.
+ */
+export const channelProfiles = pgTable(
+  "channel_profiles",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Buffer's channel ID. */
+    channelId: text("channel_id").notNull(),
+    profileRefreshedAt: timestamp("profile_refreshed_at", { withTimezone: true }).notNull(),
+    /** Sent and scheduled posts read from Buffer, before cleaning. */
+    readPosts: integer("read_posts").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.channelId] })],
+);
+
+/** A channel's cleaned posts. Only the first 500 characters of each, and never anyone else's. */
+export const channelPosts = pgTable(
+  "channel_posts",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    channelId: text("channel_id").notNull(),
+    /** Buffer's post ID. When copies were merged, the newest copy's. */
+    postId: text("post_id").notNull(),
+    text: text("text").notNull(),
+    /** One line from the model. Null for a channel too thin to have been summarized. */
+    summary: text("summary"),
+    /** Which of the channel's clusters the post is in. Null when it's in none. */
+    clusterId: text("cluster_id"),
+    postedAt: timestamp("posted_at", { withTimezone: true }).notNull(),
+    /** The newest copy that was sent. Null when no copy was. */
+    lastSentAt: timestamp("last_sent_at", { withTimezone: true }),
+    /** The soonest copy that is scheduled. Null when none is. */
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.channelId, table.postId] })],
+);
+
+/** A named group of one channel's posts. Its ID is only meaningful within that channel. */
+export const channelClusters = pgTable(
+  "channel_clusters",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    channelId: text("channel_id").notNull(),
+    clusterId: text("cluster_id").notNull(),
+    name: text("name").notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.channelId, table.clusterId] })],
+);

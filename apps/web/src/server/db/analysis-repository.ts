@@ -1,13 +1,22 @@
 import { and, count, eq, gte } from "drizzle-orm";
+import { z } from "zod";
 
 import type {
   AnalysisRepository,
   UserSettings,
 } from "@scroll-spark/core/analysis/analysis.service";
 import type { Analysis } from "@scroll-spark/core/analysis/schemas";
+import { channelFitSchema, duplicatesSchema } from "@scroll-spark/core/fit/schemas";
 
 import type { Database } from "./grant-repository";
 import { analyses, users } from "./schema";
+
+/** A column that no longer parses counts as no fit yet, rather than breaking the capture. */
+function readColumn<T>(schema: z.ZodType<T>, value: unknown) {
+  const parsed = schema.safeParse(value);
+
+  return parsed.success ? parsed.data : null;
+}
 
 function toAnalysis(row: typeof analyses.$inferSelect): Analysis {
   return {
@@ -16,6 +25,8 @@ function toAnalysis(row: typeof analyses.$inferSelect): Analysis {
     topic: row.topic,
     angle: row.angle,
     trendPhrases: row.trendPhrases,
+    channels: readColumn(z.array(channelFitSchema), row.channels),
+    duplicates: readColumn(duplicatesSchema, row.duplicates),
     model: row.model,
     createdAt: row.createdAt.toISOString(),
   };

@@ -2,6 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { Capture } from "../capture/schemas";
 import { AppError } from "../errors/app-error";
+import { createFitService } from "../fit/fit.service";
+import type { ChannelProfile, FitService } from "../fit/fit.service";
 import { DAILY_ANALYSIS_LIMIT, createAnalysisService } from "./analysis.service";
 import type { AnalysisRepository, LlmGateway } from "./analysis.service";
 import type { Analysis } from "./schemas";
@@ -23,6 +25,15 @@ const ANSWER = {
   topic: "Side projects",
   angle: "What your last unfinished project taught you",
   trendPhrases: ["side projects", "build in public"],
+  channels: [],
+  matchingIdeaIds: [],
+};
+
+/** A fit check that has nothing to check, for tests that are about something else. */
+const NO_FIT: FitService = {
+  prepare: () =>
+    Promise.resolve({ assessments: null, ideas: null, prompt: { channels: [], ideas: [] } }),
+  resolve: () => ({ channels: null, duplicates: null }),
 };
 
 function createAnalyses(existingToday = 0) {
@@ -43,11 +54,19 @@ function setup({
   existingToday = 0,
   capture = CAPTURE,
   now = NOW,
-}: { answer?: unknown; existingToday?: number; capture?: Capture; now?: Date } = {}) {
+  fit = NO_FIT,
+}: {
+  answer?: unknown;
+  existingToday?: number;
+  capture?: Capture;
+  now?: Date;
+  fit?: FitService;
+} = {}) {
   const { analyses, rows } = createAnalyses(existingToday);
   const llm: LlmGateway = {
     model: "test-model",
     analyze: vi.fn(() => Promise.resolve(answer)),
+    profile: vi.fn(() => Promise.reject(new Error("Not under test"))),
   };
   const countSince = vi.spyOn(analyses, "countSince");
   const geos = new Map<string, string>();
@@ -65,6 +84,7 @@ function setup({
         return Promise.resolve();
       },
     },
+    fit,
     clock: { now: () => now },
   });
 
@@ -95,6 +115,8 @@ describe("finding the spark", () => {
       text: CAPTURE.text,
       platform: "pasted",
       sourceName: null,
+      channels: [],
+      ideas: [],
     });
   });
 
@@ -126,6 +148,7 @@ describe("finding the spark", () => {
     ["an empty topic", { ...ANSWER, topic: "  " }],
     ["no phrases", { ...ANSWER, trendPhrases: [] }],
     ["too many phrases", { ...ANSWER, trendPhrases: ["a", "b", "c", "d"] }],
+    ["no channels", { ...ANSWER, channels: undefined }],
     ["something else entirely", "Sure! Here you go."],
   ])("saves nothing when the model returns %s", async (_case, answer) => {
     const { service, rows } = setup({ answer });
@@ -177,11 +200,201 @@ describe("finding the spark", () => {
       captureId: CAPTURE_ID,
       model: "test-model",
       createdAt: NOW.toISOString(),
+      channels: null,
+      duplicates: null,
     });
 
     await expect(service.analyze("user-1", input)).resolves.toMatchObject({
       analysis: { topic: "Side projects" },
     });
+  });
+});
+
+describe("the fit check inside an analysis", () => {
+  const LINKEDIN = {
+    id: "li",
+    service: "linkedin",
+    name: "LinkedIn",
+    isLocked: false,
+    isDisconnected: false,
+  };
+  const topics = ["customers", "ai tools", "hiring", "launches", "travel"];
+  const history = topics.flatMap((topic, topicIndex) =>
+    [1, 2].map((n) => ({
+      id: `li-${topic.replace(" ", "-")}-${String(n)}`,
+      channelId: "li",
+      text: `${topic}: note ${String(n)} from the studio about how this went and what we learned, step by step.`,
+      status: "sent",
+      sentAt: `2026-0${String(topicIndex + 3)}-1${String(n)}T10:00:00.000Z`,
+      dueAt: null,
+    })),
+  );
+
+  function withFit({ analyzeAnswer = {}, failProfile = false } = {}) {
+    const stored = new Map<string, ChannelProfile>();
+    const profile = vi.fn((input: { posts: { id: string; text: string }[] }) =>
+      failProfile
+        ? Promise.reject(new AppError("LLM_FAILED"))
+        : Promise.resolve({
+            summaries: input.posts.map(({ id, text }) => ({
+              postId: id,
+              summary: `About ${text.split(":")[0] ?? ""}`,
+            })),
+            clusters: topics.map((name) => ({
+              name,
+              postIds: input.posts.filter(({ text }) => text.startsWith(name)).map(({ id }) => id),
+            })),
+          }),
+    );
+    const fit = createFitService({
+      buffer: {
+        posts: () => Promise.resolve({ posts: history, endCursor: null, hasNextPage: false }),
+        ideas: () => Promise.resolve([{ id: "idea-1", text: "Customer notes" }]),
+      },
+      channels: {
+        historyChannels: () =>
+          Promise.resolve({ organizationId: "org-1", channels: [LINKEDIN], defaultChannelIds: [] }),
+      },
+      profiles: {
+        find: (_userId, channelId) => Promise.resolve(stored.get(channelId) ?? null),
+        save(_userId, saved) {
+          stored.set(saved.channelId, saved);
+          return Promise.resolve();
+        },
+      },
+      llm: { profile },
+      clock: { now: () => NOW },
+    });
+    const base = setup({ fit });
+    vi.mocked(base.llm.analyze).mockImplementation((request) => {
+      const customers =
+        request.channels[0]?.posts.filter(({ summary }) => summary.includes("customers")) ?? [];
+
+      return Promise.resolve({
+        ...ANSWER,
+        channels: [
+          {
+            channelId: "li",
+            clusterId: null,
+            newClusterName: null,
+            matchingPostIds: customers.map(({ id }) => id),
+          },
+        ],
+        matchingIdeaIds: ["idea-1"],
+        ...analyzeAnswer,
+      });
+    });
+
+    return { ...base, profile };
+  }
+
+  it("shows counts and dates from our rows, saved with the analysis", async () => {
+    const { service, rows } = withFit();
+
+    const { analysis } = await service.analyze("user-1", input);
+
+    expect(analysis?.channels).toEqual([
+      expect.objectContaining({
+        channelId: "li",
+        state: "fits",
+        matchingPosts: 2,
+        clusterName: "customers",
+        lastPostedAt: "2026-03-12T10:00:00.000Z",
+      }),
+    ]);
+    expect(analysis?.duplicates).toEqual({ ideas: 1, queuedPosts: 0 });
+    expect(rows.get(CAPTURE_ID)?.channels).toEqual(analysis?.channels);
+  });
+
+  it("gives the model summaries and cluster names, never dates or counts", async () => {
+    const { service, llm } = withFit();
+
+    await service.analyze("user-1", input);
+
+    const request = vi.mocked(llm.analyze).mock.calls[0]?.[0];
+    expect(request?.channels[0]?.clusters).toContainEqual({ id: "c1", name: "customers" });
+    expect(JSON.stringify(request?.channels)).not.toMatch(/2026|count/i);
+    expect(request?.ideas).toEqual([{ id: "idea-1", text: "Customer notes" }]);
+  });
+
+  it("cannot be made to show a number the model invented", async () => {
+    const { service } = withFit({
+      analyzeAnswer: {
+        channels: [
+          {
+            channelId: "li",
+            clusterId: "c99",
+            newClusterName: null,
+            matchingPostIds: ["li-customers-1", "made-up-1", "made-up-2", "made-up-3"],
+            matchingCount: 4,
+            lastPostedAt: "2026-11-05T00:00:00.000Z",
+          },
+        ],
+        matchingIdeaIds: ["idea-1", "made-up-idea"],
+      },
+    });
+
+    const { analysis } = await service.analyze("user-1", input);
+
+    expect(analysis?.channels?.[0]).toMatchObject({
+      matchingPosts: 1,
+      lastPostedAt: "2026-03-11T10:00:00.000Z",
+    });
+    expect(JSON.stringify(analysis)).not.toContain("2026-11-05");
+    expect(analysis?.duplicates?.ideas).toBe(1);
+  });
+
+  it("spends nothing the second time, and builds a profile only once", async () => {
+    const { service, llm, profile } = withFit();
+
+    await service.analyze("user-1", input);
+    await service.analyze("user-1", input);
+
+    expect(llm.analyze).toHaveBeenCalledTimes(1);
+    expect(profile).toHaveBeenCalledTimes(1);
+  });
+
+  it("still gives the analysis when a profile can't be built", async () => {
+    const { service } = withFit({ failProfile: true });
+
+    const { analysis } = await service.analyze("user-1", input);
+
+    expect(analysis?.topic).toBe("Side projects");
+    expect(analysis?.channels).toEqual([expect.objectContaining({ state: "unavailable" })]);
+  });
+
+  it("reads an analysis saved before the fit check as having no fit yet", async () => {
+    const { service, rows } = setup();
+    rows.set(CAPTURE_ID, {
+      summary: ANSWER.summary,
+      topic: ANSWER.topic,
+      angle: ANSWER.angle,
+      trendPhrases: ANSWER.trendPhrases,
+      captureId: CAPTURE_ID,
+      model: "test-model",
+      createdAt: NOW.toISOString(),
+      channels: null,
+      duplicates: null,
+    });
+
+    const { analysis } = await service.get("user-1", input);
+
+    expect(analysis).toMatchObject({ topic: "Side projects", channels: null, duplicates: null });
+  });
+
+  it("stops before asking the model when Buffer needs reconnecting", async () => {
+    const reconnect: FitService = {
+      ...NO_FIT,
+      prepare: () => Promise.reject(new AppError("RECONNECT_REQUIRED")),
+    };
+    const { service, llm, rows } = setup({ fit: reconnect });
+
+    await expect(service.analyze("user-1", input)).rejects.toMatchObject({
+      code: "RECONNECT_REQUIRED",
+    });
+
+    expect(llm.analyze).not.toHaveBeenCalled();
+    expect(rows.size).toBe(0);
   });
 });
 

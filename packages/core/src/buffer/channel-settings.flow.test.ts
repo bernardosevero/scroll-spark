@@ -100,6 +100,28 @@ describe("choosing an organization", () => {
   });
 });
 
+describe("channels whose history the fit check reads", () => {
+  it("includes channels we can't post to, and the default channels", async () => {
+    const { service } = setup({ storedChannels: ["bs"], stored: "org-1" });
+
+    const history = await service.historyChannels("user-1");
+
+    expect(history.organizationId).toBe("org-1");
+    expect(history.channels.map(({ id }) => id)).toContain("ig");
+    expect(history.defaultChannelIds).toEqual(["bs"]);
+  });
+
+  it("has nothing until an organization is chosen", async () => {
+    const { service } = setup({ organizations: 2 });
+
+    await expect(service.historyChannels("user-1")).resolves.toEqual({
+      organizationId: null,
+      channels: [],
+      defaultChannelIds: [],
+    });
+  });
+});
+
 describe("choosing default channels", () => {
   it("lists channels with the reason each unsupported one can't be chosen", async () => {
     const { service } = setup();

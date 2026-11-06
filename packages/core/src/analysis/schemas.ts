@@ -1,11 +1,15 @@
 import { z } from "zod";
 
 import { captureSchema } from "../capture/schemas";
+import { channelFitSchema, duplicatesSchema, llmFitAnswerSchema } from "../fit/schemas";
 
 const line = z.string().trim().min(1);
 
-/** What the model must return. It's parsed here, because model output is never trusted. */
-export const llmAnalysisSchema = z.object({
+/**
+ * What the model must return. It's parsed here, because model output is never trusted. The fit
+ * part names channels, clusters, posts and Ideas by ID only, and code does the counting.
+ */
+export const llmAnalysisSchema = llmFitAnswerSchema.extend({
   summary: line,
   topic: line,
   /** One line on how this user could take the topic. */
@@ -14,11 +18,17 @@ export const llmAnalysisSchema = z.object({
   trendPhrases: z.array(line).min(1).max(3),
 });
 
-export const analysisSchema = llmAnalysisSchema.extend({
-  captureId: z.string(),
-  model: z.string(),
-  createdAt: z.iso.datetime(),
-});
+export const analysisSchema = llmAnalysisSchema
+  .omit({ channels: true, matchingIdeaIds: true })
+  .extend({
+    captureId: z.string(),
+    model: z.string(),
+    createdAt: z.iso.datetime(),
+    /** The fit per channel as it was when the analysis ran. Null means no fit yet. */
+    channels: z.array(channelFitSchema).nullable(),
+    /** Ideas and queued posts that already cover this. Null means not checked. */
+    duplicates: duplicatesSchema.nullable(),
+  });
 
 const analysisViewSchema = analysisSchema.extend({
   trends: z.object({

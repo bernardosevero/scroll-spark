@@ -4,7 +4,12 @@ import type {
   QuotaStore,
 } from "@scroll-spark/core/buffer/buffer.service";
 import type { BufferPreferences } from "@scroll-spark/core/buffer/channel-settings.service";
-import type { BufferChannel, QuotaWindow } from "@scroll-spark/core/buffer/schemas";
+import type {
+  BufferChannel,
+  BufferIdea,
+  BufferPost,
+  QuotaWindow,
+} from "@scroll-spark/core/buffer/schemas";
 
 /** Memory only. Used by browser flows, and where no database exists so nobody can sign in. */
 export function createMemoryBufferCache(): BufferCache {
@@ -91,6 +96,88 @@ const CHANNELS: Record<string, BufferChannel[]> = {
   "org-side": [channel("ch-side-linkedin", "linkedin", "side-project")],
 };
 
+const DAY_MS = 86_400_000;
+
+/** Long enough to count, with the topic before the colon, which is how the fake model groups. */
+function note(topic: string, n: number) {
+  return `${topic}: note ${String(n)} on how this went for the studio and what we learned from it, step by step.`;
+}
+
+function sent(id: string, channelId: string, text: string, at: string): BufferPost {
+  return { id, channelId, text, status: "sent", sentAt: at, dueAt: at };
+}
+
+function scheduled(id: string, channelId: string, text: string, at: Date): BufferPost {
+  return { id, channelId, text, status: "scheduled", sentAt: null, dueAt: at.toISOString() };
+}
+
+/**
+ * Post history for browser flows. Dates are fixed at midday UTC, except the scheduled one, which
+ * is always ahead of today. LinkedIn has three posts on customers, the last on Sep 29. X is too
+ * thin to compare. Bluesky only writes about retro games. Instagram is a channel we can't post
+ * to, with one customer post sent and one scheduled.
+ */
+function postsFor(channelId: string, now: Date): BufferPost[] {
+  const inDays = (days: number) => new Date(now.getTime() + days * DAY_MS);
+
+  switch (channelId) {
+    case "ch-linkedin":
+      return [
+        sent("li-c1", channelId, note("Customer stories", 1), "2026-09-29T12:00:00.000Z"),
+        sent("li-c2", channelId, note("Customer stories", 2), "2026-08-12T12:00:00.000Z"),
+        sent("li-c3", channelId, note("Customer stories", 3), "2026-06-03T12:00:00.000Z"),
+        sent("li-a1", channelId, note("AI tools", 1), "2026-10-20T12:00:00.000Z"),
+        sent("li-a2", channelId, note("AI tools", 2), "2026-10-02T12:00:00.000Z"),
+        sent("li-h1", channelId, note("Hiring", 1), "2026-09-01T12:00:00.000Z"),
+        sent("li-h2", channelId, note("Hiring", 2), "2026-07-01T12:00:00.000Z"),
+        sent("li-l1", channelId, note("Launches", 1), "2026-05-01T12:00:00.000Z"),
+        sent("li-l2", channelId, note("Launches", 2), "2026-04-01T12:00:00.000Z"),
+        sent("li-t1", channelId, note("Travel notes", 1), "2026-03-01T12:00:00.000Z"),
+      ];
+    case "ch-x":
+      return [
+        sent("x-1", channelId, note("Launches", 1), "2026-10-01T12:00:00.000Z"),
+        sent("x-2", channelId, note("Hiring", 1), "2026-09-01T12:00:00.000Z"),
+        sent("x-3", channelId, "Shipped it.", "2026-08-01T12:00:00.000Z"),
+        sent("x-4", channelId, "Coffee first.", "2026-07-01T12:00:00.000Z"),
+      ];
+    case "ch-bluesky":
+      return ["Cartridges", "Consoles", "Arcades", "Handhelds", "Magazines"].flatMap(
+        (topic, index) => [
+          sent(
+            `bs-${topic}-1`,
+            channelId,
+            note(topic, 1),
+            `2026-10-1${String(index)}T12:00:00.000Z`,
+          ),
+          sent(
+            `bs-${topic}-2`,
+            channelId,
+            note(topic, 2),
+            `2026-09-1${String(index)}T12:00:00.000Z`,
+          ),
+        ],
+      );
+    case "ch-instagram":
+      return [
+        sent("ig-c1", channelId, note("Customer stories", 1), "2026-08-01T12:00:00.000Z"),
+        scheduled("ig-c2", channelId, note("Customer stories", 2), inDays(6)),
+        sent("ig-a1", channelId, note("AI tools", 1), "2026-07-01T12:00:00.000Z"),
+        sent("ig-h1", channelId, note("Hiring", 1), "2026-06-01T12:00:00.000Z"),
+        sent("ig-l1", channelId, note("Launches", 1), "2026-05-01T12:00:00.000Z"),
+        sent("ig-t1", channelId, note("Travel notes", 1), "2026-04-01T12:00:00.000Z"),
+      ];
+    default:
+      return [];
+  }
+}
+
+const IDEAS: BufferIdea[] = [
+  { id: "idea-1", title: "Customer stories", text: "What a customer taught me" },
+  { id: "idea-2", text: "Customers asked for this" },
+  { id: "idea-3", text: "Thread on keyboard shortcuts" },
+];
+
 /** Answers without calling Buffer. Used by browser flows. */
 export const fakeBufferGateway: BufferGateway = {
   account(token) {
@@ -104,9 +191,17 @@ export const fakeBufferGateway: BufferGateway = {
   },
   channels: (_token, organizationId) =>
     Promise.resolve({ data: CHANNELS[organizationId] ?? [], quota: [] }),
-  posts: () =>
-    Promise.resolve({ data: { posts: [], endCursor: null, hasNextPage: false }, quota: [] }),
-  ideas: () => Promise.resolve({ data: [], quota: [] }),
+  posts: (_token, { channelIds }) =>
+    Promise.resolve({
+      data: {
+        posts: postsFor(channelIds?.[0] ?? "", new Date()),
+        endCursor: null,
+        hasNextPage: false,
+      },
+      quota: [],
+    }),
+  ideas: (_token, organizationId) =>
+    Promise.resolve({ data: organizationId === "org-studio" ? IDEAS : [], quota: [] }),
   createIdea: () => Promise.resolve({ data: { id: "idea-fake" }, quota: [] }),
   createPost: (_token, { channelId }) =>
     Promise.resolve({ data: { id: "post-fake", channelId, status: "draft" }, quota: [] }),

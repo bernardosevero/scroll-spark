@@ -11,6 +11,7 @@ import type { Analysis } from "@scroll-spark/core/analysis/schemas";
 import type { CaptureRepository, LinkReader } from "@scroll-spark/core/capture/capture.service";
 import type { Capture } from "@scroll-spark/core/capture/schemas";
 import { AppError } from "@scroll-spark/core/errors/app-error";
+import type { ChannelProfile, ProfileRepository } from "@scroll-spark/core/fit/fit.service";
 
 /** What a memory store does when its user deletes their data, like a cascade in the database. */
 interface MemoryStore {
@@ -109,10 +110,39 @@ export const fakeLinkReader: LinkReader = {
     ),
 };
 
-/** Answers without spending anything. Text containing "[refuse]" plays a refusal. */
+/** Memory only. Holds each channel's profile for browser flows, per user. */
+export function createMemoryProfileRepository(): MemoryStore & ProfileRepository {
+  const rows = new Map<string, ChannelProfile>();
+  const keyOf = (userId: string, channelId: string) => `${userId}|${channelId}`;
+
+  return {
+    forgetUser(userId) {
+      for (const key of [...rows.keys()]) {
+        if (key.startsWith(`${userId}|`)) {
+          rows.delete(key);
+        }
+      }
+    },
+    find: (userId, channelId) => Promise.resolve(rows.get(keyOf(userId, channelId)) ?? null),
+    save(userId, profile) {
+      rows.set(keyOf(userId, profile.channelId), profile);
+      return Promise.resolve();
+    },
+  };
+}
+
+const words = (text: string) => text.toLowerCase();
+
+/**
+ * Answers without spending anything. Text containing "[refuse]" plays a refusal.
+ *
+ * It groups a channel's posts by the topic written before the colon, and says a post matches when
+ * its summary mentions customers, which is what the example captures are about.
+ */
 export const fakeLlm: LlmGateway = {
   model: "fake-model",
-  analyze: ({ text }) =>
+
+  analyze: ({ text, channels, ideas }) =>
     text.includes("[refuse]")
       ? Promise.reject(new AppError("LLM_REFUSED"))
       : Promise.resolve({
@@ -120,5 +150,34 @@ export const fakeLlm: LlmGateway = {
           topic: "Listening to customers",
           angle: "The quiet customer who changed what you built",
           trendPhrases: ["customer feedback", "product market fit"],
+          channels: channels.map((channel) => {
+            const matches = channel.posts.filter(({ summary }) =>
+              words(summary).includes("customer"),
+            );
+
+            return {
+              channelId: channel.channelId,
+              matchingPostIds: matches.map(({ id }) => id),
+              clusterId: matches[0]?.clusterId ?? null,
+              newClusterName: matches.length === 0 ? "Customer stories" : null,
+            };
+          }),
+          matchingIdeaIds: ideas
+            .filter(({ text: idea }) => words(idea).includes("customer"))
+            .map(({ id }) => id),
         }),
+
+  profile({ posts }) {
+    const topics = new Map<string, string[]>();
+
+    for (const post of posts) {
+      const topic = post.text.split(":")[0] ?? "Other";
+      topics.set(topic, [...(topics.get(topic) ?? []), post.id]);
+    }
+
+    return Promise.resolve({
+      summaries: posts.map(({ id, text }) => ({ postId: id, summary: text.slice(0, 90) })),
+      clusters: [...topics].map(([name, postIds]) => ({ name, postIds })),
+    });
+  },
 };

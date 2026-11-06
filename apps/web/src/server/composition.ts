@@ -9,6 +9,7 @@ import { createBufferService } from "@scroll-spark/core/buffer/buffer.service";
 import { createChannelSettingsService } from "@scroll-spark/core/buffer/channel-settings.service";
 import { createCaptureService } from "@scroll-spark/core/capture/capture.service";
 import { AppError } from "@scroll-spark/core/errors/app-error";
+import { createFitService } from "@scroll-spark/core/fit/fit.service";
 import type { Logger } from "@scroll-spark/core/logging/logger";
 import { createPingService } from "@scroll-spark/core/ping/ping.service";
 
@@ -27,6 +28,7 @@ import {
   createMemoryAccountRepository,
   createMemoryAnalysisRepository,
   createMemoryCaptureRepository,
+  createMemoryProfileRepository,
   createMemoryUserSettings,
   fakeLinkReader,
   fakeLlm,
@@ -43,6 +45,7 @@ import {
 } from "./db/buffer-repository";
 import { createCaptureRepository } from "./db/capture-repository";
 import { createDb } from "./db/client";
+import { createProfileRepository } from "./db/fit-repository";
 import { createGrantRepository } from "./db/grant-repository";
 import { getEnv } from "./env";
 import { createAnthropicGateway } from "./llm/anthropic-gateway";
@@ -95,12 +98,14 @@ function composeStores() {
     const captures = createMemoryCaptureRepository();
     const analyses = createMemoryAnalysisRepository();
     const settings = createMemoryUserSettings();
+    const profiles = createMemoryProfileRepository();
 
     return {
       captures,
       analyses,
       settings,
-      accounts: createMemoryAccountRepository([captures, analyses, settings]),
+      profiles,
+      accounts: createMemoryAccountRepository([captures, analyses, settings, profiles]),
       bufferCache: createMemoryBufferCache(),
       bufferQuota: createMemoryQuotaStore(),
       bufferPreferences: createMemoryBufferPreferences(),
@@ -113,6 +118,7 @@ function composeStores() {
     captures: createCaptureRepository({ db }),
     analyses: createAnalysisRepository({ db }),
     settings: createUserSettingsRepository({ db }),
+    profiles: createProfileRepository({ db }),
     bufferCache: createBufferCacheRepository({ db }),
     bufferQuota: createBufferQuotaRepository({ db }),
     bufferPreferences: createBufferPreferencesRepository({ db }),
@@ -143,7 +149,10 @@ function composeBuffer(
     logger,
   });
 
-  return createChannelSettingsService({ buffer, preferences: stores.bufferPreferences });
+  return {
+    buffer,
+    channels: createChannelSettingsService({ buffer, preferences: stores.bufferPreferences }),
+  };
 }
 
 function composeLlm(logger: Logger): LlmGateway {
@@ -157,12 +166,17 @@ function composeLlm(logger: Logger): LlmGateway {
   // No retries, since each one costs money, and a timeout under the route's own limit.
   const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY ?? "", maxRetries: 0, timeout: 50_000 });
 
-  return createAnthropicGateway({ parse: (request) => client.messages.parse(request), logger });
+  return createAnthropicGateway({
+    parse: (request, options) => client.messages.parse(request, options),
+    logger,
+  });
 }
 
 function composeProductServices(logger: Logger, oauth: OAuthContext | null) {
   const stores = composeStores();
-  const { captures, analyses, settings, accounts } = stores;
+  const { captures, analyses, settings, accounts, profiles } = stores;
+  const { buffer, channels } = composeBuffer(logger, oauth, stores);
+  const llm = composeLlm(logger);
   const linkReader =
     getEnv().E2E_FAKES === undefined
       ? createLinkReader({ get: createSafeGet(), logger })
@@ -172,13 +186,14 @@ function composeProductServices(logger: Logger, oauth: OAuthContext | null) {
     account: createAccountService({ accounts }),
     capture: createCaptureService({ captures, linkReader }),
     analysis: createAnalysisService({
-      llm: composeLlm(logger),
+      llm,
       analyses,
       captures,
       settings,
+      fit: createFitService({ buffer, channels, profiles, llm, clock, logger }),
       clock,
     }),
-    channels: composeBuffer(logger, oauth, stores),
+    channels,
   };
 }
 
