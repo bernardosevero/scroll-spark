@@ -126,6 +126,16 @@ describe("OAuth routes", () => {
 
     expect(response.status).toBe(303);
     expect(response.cookies.get(SESSION_COOKIE)?.value).toBe("");
+    expect(response.headers.get("location")).toBe(`${APP_URL}/`);
+  });
+
+  it("tells the landing page when the user's data was deleted", () => {
+    const { context } = setup();
+
+    const response = handleDisconnect(context, { isDeleted: true });
+
+    expect(response.headers.get("location")).toBe(`${APP_URL}/?deleted=1`);
+    expect(response.cookies.get(SESSION_COOKIE)?.value).toBe("");
   });
 });
 

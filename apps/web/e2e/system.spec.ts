@@ -5,7 +5,7 @@ test("the design system page shows every specimen", async ({ page }) => {
 
   await expect(page.getByRole("heading", { name: "Riso Print" })).toBeVisible();
 
-  for (const title of ["Colour", "Type", "Actions", "Surfaces", "Motion"]) {
+  for (const title of ["Colour", "Type", "Actions", "Surfaces", "Notices", "Motion"]) {
     await expect(page.getByRole("heading", { name: title })).toBeVisible();
   }
 

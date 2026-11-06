@@ -91,9 +91,10 @@ export async function handleCallback(request: NextRequest, context: OAuthContext
   return response;
 }
 
-export function handleDisconnect({ appUrl }: OAuthContext) {
+/** Ends the session. After the user's data is deleted, the landing page says so. */
+export function handleDisconnect({ appUrl }: OAuthContext, { isDeleted = false } = {}) {
   // 303, so the browser follows this POST with a GET.
-  const response = NextResponse.redirect(`${appUrl}/`, 303);
+  const response = NextResponse.redirect(`${appUrl}/${isDeleted ? "?deleted=1" : ""}`, 303);
   response.cookies.delete(SESSION_COOKIE);
   return response;
 }

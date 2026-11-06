@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 
 import type { ApiContext } from "@scroll-spark/api/router";
+import { createAccountService } from "@scroll-spark/core/account/account.service";
 import { createAnalysisService } from "@scroll-spark/core/analysis/analysis.service";
 import type { LlmGateway } from "@scroll-spark/core/analysis/analysis.service";
 import { createAuthService } from "@scroll-spark/core/auth/auth.service";
@@ -12,6 +13,7 @@ import { createBufferAuthGateway } from "./auth/buffer-auth-gateway";
 import type { OAuthContext } from "./auth/oauth-handlers";
 import { pkceCrypto } from "./auth/pkce";
 import {
+  createMemoryAccountRepository,
   createMemoryAnalysisRepository,
   createMemoryCaptureRepository,
   createMemoryUserSettings,
@@ -21,6 +23,7 @@ import {
 import { createLinkReader } from "./capture/link-reader";
 import { createSafeGet } from "./capture/safe-get";
 import { createSealer } from "./crypto/seal";
+import { createAccountRepository } from "./db/account-repository";
 import { createAnalysisRepository, createUserSettingsRepository } from "./db/analysis-repository";
 import { createCaptureRepository } from "./db/capture-repository";
 import { createDb } from "./db/client";
@@ -73,10 +76,15 @@ function composeStores() {
 
   // With no database nobody can sign in, so the memory stores are only reached by browser flows.
   if (DATABASE_URL === undefined || E2E_FAKES !== undefined) {
+    const captures = createMemoryCaptureRepository();
+    const analyses = createMemoryAnalysisRepository();
+    const settings = createMemoryUserSettings();
+
     return {
-      captures: createMemoryCaptureRepository(),
-      analyses: createMemoryAnalysisRepository(),
-      settings: createMemoryUserSettings(),
+      captures,
+      analyses,
+      settings,
+      accounts: createMemoryAccountRepository([captures, analyses, settings]),
     };
   }
 
@@ -86,6 +94,7 @@ function composeStores() {
     captures: createCaptureRepository({ db }),
     analyses: createAnalysisRepository({ db }),
     settings: createUserSettingsRepository({ db }),
+    accounts: createAccountRepository({ db }),
   };
 }
 
@@ -104,13 +113,14 @@ function composeLlm(logger: Logger): LlmGateway {
 }
 
 function composeProductServices(logger: Logger) {
-  const { captures, analyses, settings } = composeStores();
+  const { captures, analyses, settings, accounts } = composeStores();
   const linkReader =
     getEnv().E2E_FAKES === undefined
       ? createLinkReader({ get: createSafeGet(), logger })
       : fakeLinkReader;
 
   return {
+    account: createAccountService({ accounts }),
     capture: createCaptureService({ captures, linkReader }),
     analysis: createAnalysisService({
       llm: composeLlm(logger),

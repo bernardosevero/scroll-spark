@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./account/account.service": "./src/account/account.service.ts",
+    "./account/schemas": "./src/account/schemas.ts",
     "./analysis/analysis.service": "./src/analysis/analysis.service.ts",
     "./analysis/schemas": "./src/analysis/schemas.ts",
     "./auth/auth.service": "./src/auth/auth.service.ts",
