@@ -38,7 +38,7 @@ flowchart TB
   classDef planned stroke-dasharray: 6 4
 ```
 
-**Tables so far:** `users`, `buffer_grants`, `captures`, `analyses`.
+**Tables so far:** `users`, `buffer_grants`, `captures`, `analyses`, `extension_tokens`.
 
 ## Reading a link safely
 
@@ -128,6 +128,54 @@ sequenceDiagram
 ## Extension sign-in
 
 The extension opens a tab on our website, which uses the normal session and sends back a token through `externally_connectable`. The token is random, revocable, valid for 30 days, and stored only as a hash on our server. It never gives direct access to Buffer.
+
+```mermaid
+sequenceDiagram
+  actor User
+  participant Panel as Side panel
+  participant BG as Extension background
+  participant Page as /extension/connect
+  participant API as tRPC route
+  participant DB as extension_tokens
+
+  User->>Panel: Sign in on the website
+  Panel->>Page: Opens a tab
+  User->>Page: Connect the side panel (cookie session)
+  Page->>API: extension.connect
+  API->>DB: Insert SHA-256 of a new random token, expires in 30 days
+  API-->>Page: The token, once
+  Page->>BG: runtime.sendMessage(extension ID, token)
+  BG->>BG: Check the sender's origin, keep the token in storage.local
+  alt The extension didn't answer
+    Page->>API: extension.revoke, so no token goes unheld
+  end
+
+  Note over Panel,API: Later, from the side panel
+  Panel->>API: capture.create with Authorization: Bearer token
+  API->>DB: Find by hash. Refuse if revoked or past expires_at
+  API-->>Panel: The capture, saved to the same inbox as the website
+```
+
+`resolveCaller` in `packages/api/src/context.ts` picks who is calling. A bearer token wins when one is sent, and a bad one signs the request out rather than falling back to a cookie. Minting, listing and revoking tokens accept the website's cookie only, so a stolen token can't renew itself. CORS allows only `EXTENSION_ORIGIN` and never credentials. `/extension/connect` lists the active connections and revokes them.
+
+## Capturing from a page
+
+The background script reads a tab only after the user acts (toolbar icon, shortcut, right-click), which grants `activeTab` for that tab. It injects `capture.js`, an unlisted script that is not in the manifest, and leaves the result in `storage.session` for the panel. The panel always shows it for correction before `capture.create`.
+
+```mermaid
+flowchart LR
+  act[Toolbar, shortcut or right-click] --> open[Open the side panel]
+  act --> inject[Inject capture.js into that tab]
+  inject --> order{Selected text?}
+  order -- yes --> found
+  order -- no --> post{LinkedIn or YouTube post found?}
+  post -- yes --> found[Captured text]
+  post -- no --> page{Ordinary page?}
+  page -- yes --> title[Title and URL] --> found
+  page -- no, or markup changed --> empty[Ask the user to select the text]
+  found --> review[Panel: correct, then Save to inbox]
+  empty --> review
+```
 
 ## Where each decision is recorded
 
