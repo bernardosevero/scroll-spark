@@ -24,6 +24,7 @@
     "./fit/schemas": "./src/fit/schemas.ts",
     "./extension-token/extension-token.service": "./src/extension-token/extension-token.service.ts",
     "./extension-token/schemas": "./src/extension-token/schemas.ts",
+    "./health/health.service": "./src/health/health.service.ts",
     "./logging/logger": "./src/logging/logger.ts",
     "./ping/ping.service": "./src/ping/ping.service.ts",
     "./ping/schemas": "./src/ping/schemas.ts",

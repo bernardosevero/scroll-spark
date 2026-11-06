@@ -78,6 +78,10 @@ export default async function PrivacyPage() {
             <li>
               Buffer: only what you explicitly save or post. Capturing never writes to Buffer.
             </li>
+            <li>
+              Sites you link to: when you paste a link, our server opens that one page to read its
+              title and description, and YouTube links go to YouTube. It sends no details about you.
+            </li>
           </ul>
         </Section>
 
