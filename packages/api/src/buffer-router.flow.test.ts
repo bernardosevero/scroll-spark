@@ -4,6 +4,7 @@ import type { AccountService } from "@scroll-spark/core/account/account.service"
 import type { AnalysisService } from "@scroll-spark/core/analysis/analysis.service";
 import type { ChannelSettingsService } from "@scroll-spark/core/buffer/channel-settings.service";
 import type { CaptureService } from "@scroll-spark/core/capture/capture.service";
+import type { ShipService } from "@scroll-spark/core/ship/ship.service";
 
 import { appRouter } from "./router";
 
@@ -24,6 +25,7 @@ function setup(userId: string | null) {
       account: {} as AccountService,
       capture: {} as CaptureService,
       analysis: {} as AnalysisService,
+      ship: {} as ShipService,
       channels,
     },
   });

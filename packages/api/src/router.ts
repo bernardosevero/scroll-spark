@@ -26,6 +26,16 @@ import {
 } from "@scroll-spark/core/capture/schemas";
 import { AppError } from "@scroll-spark/core/errors/app-error";
 import type { AppErrorCode } from "@scroll-spark/core/errors/app-error";
+import type { ShipService } from "@scroll-spark/core/ship/ship.service";
+import {
+  draftInputSchema,
+  draftResultSchema,
+  ideaStateSchema,
+  postInputSchema,
+  postResultSchema,
+  savedIdeaSchema,
+  shipCaptureInputSchema,
+} from "@scroll-spark/core/ship/schemas";
 import type { PingService } from "@scroll-spark/core/ping/ping.service";
 import { pingInputSchema, pingOutputSchema } from "@scroll-spark/core/ping/schemas";
 
@@ -38,6 +48,7 @@ export interface ApiContext {
     capture: CaptureService;
     analysis: AnalysisService;
     channels: ChannelSettingsService;
+    ship: ShipService;
   };
 }
 
@@ -53,6 +64,9 @@ const TRPC_CODE_BY_APP_CODE: Record<AppErrorCode, TRPC_ERROR_CODE_KEY> = {
   BUFFER_LIMIT_REACHED: "PRECONDITION_FAILED",
   LLM_REFUSED: "UNPROCESSABLE_CONTENT",
   BUFFER_FAILED: "BAD_GATEWAY",
+  CHANNEL_NOT_SUPPORTED: "BAD_REQUEST",
+  POST_TOO_LONG: "BAD_REQUEST",
+  DRAFT_LIMIT_REACHED: "TOO_MANY_REQUESTS",
 };
 
 const trpc = initTRPC.context<ApiContext>().create({
@@ -108,6 +122,28 @@ export const appRouter = trpc.router({
       .input(captureIdInputSchema)
       .output(capturedAnalysisSchema)
       .mutation(({ ctx, input }) => ctx.services.analysis.analyze(ctx.userId, input)),
+    ideaOf: signedInProcedure
+      .input(shipCaptureInputSchema)
+      .output(ideaStateSchema)
+      .query(({ ctx, input }) => ctx.services.ship.ideaOf(ctx.userId, input)),
+    saveAsIdea: signedInProcedure
+      .input(shipCaptureInputSchema)
+      .output(savedIdeaSchema)
+      .mutation(({ ctx, input }) => ctx.services.ship.saveAsIdea(ctx.userId, input)),
+  }),
+
+  draft: trpc.router({
+    create: signedInProcedure
+      .input(draftInputSchema)
+      .output(draftResultSchema)
+      .mutation(({ ctx, input }) => ctx.services.ship.draft(ctx.userId, input)),
+  }),
+
+  post: trpc.router({
+    create: signedInProcedure
+      .input(postInputSchema)
+      .output(postResultSchema)
+      .mutation(({ ctx, input }) => ctx.services.ship.createPost(ctx.userId, input)),
   }),
 
   buffer: trpc.router({

@@ -36,7 +36,7 @@ flowchart TB
   adapters -- link reader, SSRF checked --> web[YouTube oEmbed and public pages]
 ```
 
-**Tables so far:** `users` (also holds the chosen Buffer organization and default channels), `buffer_grants`, `captures`, `analyses`, `buffer_cache`, `buffer_quota`.
+**Tables so far:** `users` (also holds the chosen Buffer organization and default channels), `buffer_grants`, `captures` (with `buffer_idea_id`, the only trace of a saved Idea), `analyses`, `draft_runs` (one row per draft requested, no text, for the daily limit), `buffer_cache`, `buffer_quota`.
 
 ## Every Buffer call
 
@@ -125,6 +125,36 @@ sequenceDiagram
 ```
 
 Capturing never calls Buffer. Only an explicit save or post writes there, which protects the shared quota and keeps Ideas boards clean.
+
+## Saving, drafting and posting
+
+`core/src/ship/ship.service.ts` owns the last three steps. It reaches Buffer only through `BufferService`, and Claude only through the `DraftWriter` interface (the adapter is `server/llm/anthropic-drafter.ts`).
+
+```mermaid
+flowchart TB
+  save[capture.saveAsIdea] --> saved{captures.buffer_idea_id set?}
+  saved -- yes --> same[Return it, no Buffer call]
+  saved -- no --> idea[createIdea: topic, summary, angle, source link, Trends links, tags empty]
+  idea --> keep[Keep only the idea ID]
+
+  draft[draft.create] --> limit{Under the daily draft limit?}
+  limit -- no --> stop[DRAFT_LIMIT_REACHED]
+  limit -- yes --> posts[Cached posts for that channel]
+  posts --> voice[Up to 8 sent posts, 80+ characters, first 500 each]
+  voice --> brief[Brief: angle, summary, topic, channel, limit, samples. Never the source text]
+  brief --> writer[DraftWriter, no tools]
+  writer --> text[Draft text in the editor]
+  text --> overlap[findOverlap against the source, locally, no model]
+
+  post[post.create] --> check{Supported channel and within its limit?}
+  check -- no --> refused[CHANNEL_NOT_SUPPORTED or POST_TOO_LONG]
+  check -- yes --> once[createPost once, never retried]
+  once --> kind{Which button?}
+  kind -- Save as draft --> d[saveToDraft true]
+  kind -- Add to queue --> q[mode addToQueue]
+```
+
+Two identical clicks that arrive while the first is still running share one call, within a server. Drafts are not stored: they live in the editor until posted, and `draft_runs` only counts requests. A draft is counted before the model is called, because a refused or failed one may still cost money.
 
 ## OAuth and token refresh
 
