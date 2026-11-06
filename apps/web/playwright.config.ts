@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 
-import { E2E_SECRET_KEY } from "./e2e/support/session";
+import { E2E_SECRET_KEY, EXTENSION_ID } from "./e2e/support/session";
 
 const PORT = 3100;
 
@@ -25,6 +25,7 @@ export default defineConfig({
       BUFFER_CLIENT_SECRET: "e2e-secret",
       DATABASE_URL: "postgres://e2e:e2e@localhost:5432/e2e",
       SECRET_KEY: E2E_SECRET_KEY,
+      EXTENSION_ORIGIN: `chrome-extension://${EXTENSION_ID}`,
       E2E_FAKES: "1",
     },
     reuseExistingServer: !process.env.CI,

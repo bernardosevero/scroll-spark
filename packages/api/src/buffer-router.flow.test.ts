@@ -5,6 +5,7 @@ import type { AnalysisService } from "@scroll-spark/core/analysis/analysis.servi
 import type { ChannelSettingsService } from "@scroll-spark/core/buffer/channel-settings.service";
 import type { CaptureService } from "@scroll-spark/core/capture/capture.service";
 import type { ShipService } from "@scroll-spark/core/ship/ship.service";
+import type { ExtensionTokenService } from "@scroll-spark/core/extension-token/extension-token.service";
 
 import { appRouter } from "./router";
 
@@ -20,6 +21,7 @@ function setup(userId: string | null) {
   };
   const caller = appRouter.createCaller({
     userId,
+    credential: userId === null ? null : "session",
     services: {
       ping: { ping: () => ({ message: "", answeredAt: "" }) },
       account: {} as AccountService,
@@ -27,6 +29,7 @@ function setup(userId: string | null) {
       analysis: {} as AnalysisService,
       ship: {} as ShipService,
       channels,
+      extensionTokens: {} as ExtensionTokenService,
     },
   });
 

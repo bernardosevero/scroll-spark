@@ -17,16 +17,33 @@ export { DRAFT_LANGUAGES } from "@scroll-spark/core/ship/schemas";
 export type { DraftResult } from "@scroll-spark/core/ship/schemas";
 export type { Capture, CapturePlatform } from "@scroll-spark/core/capture/schemas";
 
+export type { ConnectedToken, ExtensionToken } from "@scroll-spark/core/extension-token/schemas";
+
 /** Pass as an operation's context to send it alone, so it never shares a request with others. */
 export const SEND_ALONE = { sendAlone: true } as const;
 
-export function createApiClient({ url }: { url: string }) {
+/**
+ * The website sends its cookie. The side panel passes `getToken`, and each request then carries
+ * that bearer token instead.
+ */
+export function createApiClient({
+  url,
+  getToken,
+}: {
+  url: string;
+  getToken?: () => Promise<string | null>;
+}) {
+  async function headers() {
+    const token = (await getToken?.()) ?? null;
+    return token === null ? {} : { authorization: `Bearer ${token}` };
+  }
+
   return createTRPCClient<AppRouter>({
     links: [
       splitLink({
         condition: (operation) => operation.context["sendAlone"] === true,
-        true: httpLink({ url }),
-        false: httpBatchLink({ url }),
+        true: httpLink({ url, headers }),
+        false: httpBatchLink({ url, headers }),
       }),
     ],
   });

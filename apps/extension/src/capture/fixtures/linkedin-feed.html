@@ -1,0 +1,73 @@
+<!doctype html>
+<!--
+  UNVERIFIED FIXTURE. Written by hand from knowledge of LinkedIn's feed markup, not saved from a
+  live page. Every person, company and sentence is invented. The owner must compare the selectors
+  in src/capture/linkedin.ts against the live page.
+-->
+<html lang="en">
+  <head>
+    <title>(3) Feed | LinkedIn</title>
+  </head>
+  <body>
+    <main>
+      <div class="scaffold-finite-scroll__content">
+        <div class="feed-shared-update-v2" data-urn="urn:li:activity:7000000000000000001">
+          <div class="update-components-actor">
+            <a href="https://www.linkedin.com/in/ana-example/">
+              <span class="update-components-actor__title">
+                <span aria-hidden="true">Ana Example</span>
+                <span class="visually-hidden">Ana Example</span>
+              </span>
+            </a>
+          </div>
+          <div class="update-components-text">
+            <span dir="ltr">The top post, scrolled mostly out of view.</span>
+          </div>
+        </div>
+
+        <div class="feed-shared-update-v2" data-urn="urn:li:activity:7000000000000000002">
+          <div class="update-components-actor">
+            <a href="https://www.linkedin.com/in/sam-sample/">
+              <span class="update-components-actor__title">
+                <span aria-hidden="true">Sam Sample</span>
+                <span class="visually-hidden">Sam Sample</span>
+              </span>
+            </a>
+          </div>
+          <div class="update-components-text">
+            <span dir="ltr"
+              >Consistency beats talent when you post every week.<br /><br />Here is what I
+              changed in my routine:<br />1. Batch the ideas on Sunday.<br />2. Write one post a
+              day.
+              <a href="https://www.linkedin.com/feed/hashtag/?keywords=creators">#creators</a>
+              <button class="feed-shared-inline-show-more-text__see-more-less-toggle">
+                …more
+              </button></span
+            >
+          </div>
+          <div class="feed-shared-reshared-update" data-urn="urn:li:activity:7000000000000000009">
+            <a href="https://www.linkedin.com/in/someone-else/">
+              <span aria-hidden="true">Someone Else</span>
+            </a>
+            <div class="update-components-text">
+              <span dir="ltr">A reshared post that must not be mistaken for the one above.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="feed-shared-update-v2" data-urn="urn:li:share:7000000000000000003">
+          <div class="update-components-actor">
+            <a href="https://www.linkedin.com/company/acme-example/">
+              <span class="update-components-actor__title">
+                <span aria-hidden="true">Acme Example</span>
+              </span>
+            </a>
+          </div>
+          <div class="update-components-text">
+            <span dir="ltr">The bottom post, still below the fold.</span>
+          </div>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

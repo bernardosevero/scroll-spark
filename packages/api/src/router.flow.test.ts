@@ -7,6 +7,7 @@ import type { ChannelSettingsService } from "@scroll-spark/core/buffer/channel-s
 import type { CaptureService } from "@scroll-spark/core/capture/capture.service";
 import type { ShipService } from "@scroll-spark/core/ship/ship.service";
 import { AppError } from "@scroll-spark/core/errors/app-error";
+import type { ExtensionTokenService } from "@scroll-spark/core/extension-token/extension-token.service";
 import type { PingService } from "@scroll-spark/core/ping/ping.service";
 
 import { appRouter } from "./router";
@@ -38,6 +39,15 @@ function createAnalysis(): AnalysisService {
     analyze: vi.fn(() => Promise.resolve(CAPTURED)),
     get: vi.fn(() => Promise.resolve(CAPTURED)),
     setTrendsGeo: vi.fn(() => Promise.resolve()),
+  };
+}
+
+function createExtensionTokens(): ExtensionTokenService {
+  return {
+    connect: vi.fn(),
+    resolve: vi.fn(() => Promise.resolve(null)),
+    list: vi.fn(() => Promise.resolve([])),
+    revoke: vi.fn(() => Promise.resolve()),
   };
 }
 
@@ -87,7 +97,16 @@ function callerWith(ping: PingService["ping"], userId: string | null = null) {
     ship,
     caller: appRouter.createCaller({
       userId,
-      services: { ping: { ping }, capture, analysis, channels, account, ship },
+      credential: userId === null ? null : "session",
+      services: {
+        ping: { ping },
+        capture,
+        analysis,
+        channels,
+        account,
+        ship,
+        extensionTokens: createExtensionTokens(),
+      },
     }),
   };
 }

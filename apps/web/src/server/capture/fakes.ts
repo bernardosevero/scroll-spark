@@ -11,6 +11,10 @@ import type { Analysis } from "@scroll-spark/core/analysis/schemas";
 import type { CaptureRepository, LinkReader } from "@scroll-spark/core/capture/capture.service";
 import type { Capture } from "@scroll-spark/core/capture/schemas";
 import { AppError } from "@scroll-spark/core/errors/app-error";
+import type {
+  ExtensionTokenRecord,
+  ExtensionTokenRepository,
+} from "@scroll-spark/core/extension-token/extension-token.service";
 
 /** What a memory store does when its user deletes their data, like a cascade in the database. */
 interface MemoryStore {
@@ -51,6 +55,32 @@ export function createMemoryCaptureRepository(): MemoryStore & CaptureRepository
     findOwned(userId, captureId) {
       const row = rows.find((candidate) => candidate.id === captureId);
       return Promise.resolve(row?.userId === userId ? row : null);
+    },
+  };
+}
+
+export function createMemoryExtensionTokenRepository(): MemoryStore & ExtensionTokenRepository {
+  let rows: ExtensionTokenRecord[] = [];
+
+  return {
+    forgetUser(userId) {
+      rows = rows.filter((row) => row.userId !== userId);
+    },
+    insert(row) {
+      const saved = { ...row, id: randomUUID(), revokedAt: null };
+      rows.push(saved);
+      return Promise.resolve({ ...saved });
+    },
+    findByHash: (tokenHash) =>
+      Promise.resolve(rows.find((row) => row.tokenHash === tokenHash) ?? null),
+    listForUser: (userId) => Promise.resolve(rows.filter((row) => row.userId === userId).reverse()),
+    revoke(userId, tokenId, at) {
+      const row = rows.find((candidate) => candidate.id === tokenId && candidate.userId === userId);
+      if (row === undefined) {
+        return Promise.resolve(false);
+      }
+      row.revokedAt ??= at;
+      return Promise.resolve(true);
     },
   };
 }

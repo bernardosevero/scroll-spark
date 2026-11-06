@@ -36,17 +36,24 @@ import {
   savedIdeaSchema,
   shipCaptureInputSchema,
 } from "@scroll-spark/core/ship/schemas";
+import type { ExtensionTokenService } from "@scroll-spark/core/extension-token/extension-token.service";
+import {
+  connectedTokenSchema,
+  extensionTokenSchema,
+  revokeTokenInputSchema,
+} from "@scroll-spark/core/extension-token/schemas";
 import type { PingService } from "@scroll-spark/core/ping/ping.service";
 import { pingInputSchema, pingOutputSchema } from "@scroll-spark/core/ping/schemas";
 
-export interface ApiContext {
-  /** Null when nobody is signed in. */
-  userId: string | null;
+import type { Caller } from "./context";
+
+export interface ApiContext extends Caller {
   services: {
     ping: PingService;
     account: AccountService;
     capture: CaptureService;
     analysis: AnalysisService;
+    extensionTokens: ExtensionTokenService;
     channels: ChannelSettingsService;
     ship: ShipService;
   };
@@ -93,6 +100,15 @@ const signedInProcedure = procedure.use(({ ctx, next }) => {
   }
 
   return next({ ctx: { userId: ctx.userId } });
+});
+
+/** For the website only: a side panel's token must not be able to mint or revoke tokens. */
+const sessionProcedure = signedInProcedure.use(({ ctx, next }) => {
+  if (ctx.credential !== "session") {
+    throw new AppError("NOT_SIGNED_IN");
+  }
+
+  return next();
 });
 
 /** Routers are one-line forwards. Decisions live in `core` services. */
@@ -146,6 +162,18 @@ export const appRouter = trpc.router({
       .mutation(({ ctx, input }) => ctx.services.ship.createPost(ctx.userId, input)),
   }),
 
+  extension: trpc.router({
+    connect: sessionProcedure
+      .output(connectedTokenSchema)
+      .mutation(({ ctx }) => ctx.services.extensionTokens.connect(ctx.userId)),
+    list: sessionProcedure
+      .output(extensionTokenSchema.array())
+      .query(({ ctx }) => ctx.services.extensionTokens.list(ctx.userId)),
+    revoke: sessionProcedure
+      .input(revokeTokenInputSchema)
+      .mutation(({ ctx, input }) => ctx.services.extensionTokens.revoke(ctx.userId, input)),
+  }),
+
   buffer: trpc.router({
     account: signedInProcedure
       .output(accountViewSchema)
@@ -165,7 +193,8 @@ export const appRouter = trpc.router({
     status: signedInProcedure
       .output(accountStatusSchema)
       .query(({ ctx }) => ctx.services.account.status(ctx.userId)),
-    deleteMyData: signedInProcedure.mutation(({ ctx }) =>
+    // Website only, so a stolen side panel token can't erase an account.
+    deleteMyData: sessionProcedure.mutation(({ ctx }) =>
       ctx.services.account.deleteMyData(ctx.userId),
     ),
   }),
