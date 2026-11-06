@@ -36,6 +36,17 @@ describe("parseEnv", () => {
     );
   });
 
+  it.each(["production", "preview", "development"])(
+    "refuses fake services on a Vercel %s deployment",
+    (VERCEL_ENV) => {
+      expect(() => parseEnv({ ...COMPLETE, VERCEL_ENV, E2E_FAKES: "1" })).toThrow("E2E_FAKES");
+    },
+  );
+
+  it("allows fake services in local browser flows", () => {
+    expect(parseEnv({ E2E_FAKES: "1" }).E2E_FAKES).toBe("1");
+  });
+
   it("starts production with everything set", () => {
     expect(() => parseEnv({ ...COMPLETE, VERCEL_ENV: "production" })).not.toThrow();
   });

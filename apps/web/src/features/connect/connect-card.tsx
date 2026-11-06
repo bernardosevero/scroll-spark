@@ -12,6 +12,7 @@ export function ConnectCard({
     return (
       <Card isFeatured className="flex flex-col items-start gap-4">
         <p className="font-medium">Your Buffer account is connected.</p>
+        <ButtonLink href="/inbox">Open your inbox</ButtonLink>
         <form action="/api/auth/disconnect" method="post">
           <Button type="submit" variant="plain">
             Sign out

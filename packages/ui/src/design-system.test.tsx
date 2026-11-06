@@ -1,7 +1,9 @@
 import { cleanup, render, screen } from "@testing-library/react";
+import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Button } from "./button";
+import { ChipButton } from "./chip-button";
 import { FitRow } from "./fit-row";
 import { SparkBurst } from "./spark-burst";
 import { TextAreaField } from "./text-area-field";
@@ -27,6 +29,21 @@ describe("design system", () => {
     render(<Button>Save idea</Button>);
 
     expect(screen.getByRole("button", { name: "Save idea" }).getAttribute("type")).toBe("button");
+  });
+
+  it("keeps a chip from submitting forms unless asked", () => {
+    render(<ChipButton>A founder story</ChipButton>);
+
+    expect(screen.getByRole("button", { name: "A founder story" }).getAttribute("type")).toBe(
+      "button",
+    );
+  });
+
+  it("lets a field take focus from its parent", () => {
+    const ref = createRef<HTMLTextAreaElement>();
+    render(<TextAreaField label="Captured text" ref={ref} />);
+
+    expect(ref.current).toBe(screen.getByLabelText("Captured text"));
   });
 
   it("ties a field's label to its input", () => {

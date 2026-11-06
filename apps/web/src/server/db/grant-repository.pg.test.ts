@@ -1,12 +1,8 @@
-import { drizzle } from "drizzle-orm/node-postgres";
-import { migrate } from "drizzle-orm/node-postgres/migrator";
-import { fileURLToPath } from "node:url";
-import { Pool } from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { createSealer } from "../crypto/seal";
 import { createGrantRepository } from "./grant-repository";
-import * as schema from "./schema";
+import { createTestDatabase } from "./test-database";
 
 // The lock is about concurrency, so a fake would prove nothing. Runs when a test database exists.
 const databaseUrl = process.env.TEST_DATABASE_URL;
@@ -18,26 +14,14 @@ const tokens = (name: string) => ({
 });
 
 describe.skipIf(databaseUrl === undefined)("grant repository on real Postgres", () => {
-  const pool = new Pool({ connectionString: databaseUrl, max: 10 });
-  const db = drizzle(pool, { schema });
+  const { pool, db, reset } = createTestDatabase(databaseUrl);
   const sealer = createSealer({
     secretKey: Buffer.alloc(32, 9).toString("base64"),
     purpose: "tokens",
   });
   const grants = createGrantRepository({ db, sealer });
 
-  beforeAll(async () => {
-    if (!new URL(String(databaseUrl)).pathname.includes("test")) {
-      throw new Error("TEST_DATABASE_URL must name a test database, since this test resets it.");
-    }
-
-    await pool.query("DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;");
-    await pool.query("DROP SCHEMA IF EXISTS drizzle CASCADE;");
-    await migrate(db, {
-      migrationsFolder: fileURLToPath(new URL("../../../drizzle", import.meta.url)),
-    });
-  });
-
+  beforeAll(reset);
   afterAll(() => pool.end());
 
   it("lets exactly one of many simultaneous requests start a refresh", async () => {

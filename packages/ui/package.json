@@ -6,6 +6,7 @@
   "exports": {
     "./button": "./src/button.tsx",
     "./card": "./src/card.tsx",
+    "./chip-button": "./src/chip-button.tsx",
     "./chip-link": "./src/chip-link.tsx",
     "./fit-row": "./src/fit-row.tsx",
     "./ping-card": "./src/ping-card.tsx",

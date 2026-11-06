@@ -1,12 +1,17 @@
 import type { ApiContext } from "@scroll-spark/api/router";
 import { createAuthService } from "@scroll-spark/core/auth/auth.service";
+import { createCaptureService } from "@scroll-spark/core/capture/capture.service";
 import type { Logger } from "@scroll-spark/core/logging/logger";
 import { createPingService } from "@scroll-spark/core/ping/ping.service";
 
 import { createBufferAuthGateway } from "./auth/buffer-auth-gateway";
 import type { OAuthContext } from "./auth/oauth-handlers";
 import { pkceCrypto } from "./auth/pkce";
+import { createMemoryCaptureRepository, fakeLinkReader } from "./capture/fakes";
+import { createLinkReader } from "./capture/link-reader";
+import { createSafeGet } from "./capture/safe-get";
 import { createSealer } from "./crypto/seal";
+import { createCaptureRepository } from "./db/capture-repository";
 import { createDb } from "./db/client";
 import { createGrantRepository } from "./db/grant-repository";
 import { getEnv } from "./env";
@@ -51,6 +56,25 @@ function composeOAuth(logger: Logger): OAuthContext | null {
   };
 }
 
+function composeCapture(logger: Logger) {
+  const { DATABASE_URL, E2E_FAKES } = getEnv();
+
+  if (E2E_FAKES !== undefined) {
+    return createCaptureService({
+      captures: createMemoryCaptureRepository(),
+      linkReader: fakeLinkReader,
+    });
+  }
+
+  return createCaptureService({
+    // With no database nobody can sign in, so this store is never reached.
+    captures: DATABASE_URL
+      ? createCaptureRepository({ db: createDb(DATABASE_URL) })
+      : createMemoryCaptureRepository(),
+    linkReader: createLinkReader({ get: createSafeGet(), logger }),
+  });
+}
+
 let cached: Composition | undefined;
 
 /** The one place services meet their real adapters. Tests build services with fakes instead. */
@@ -60,7 +84,7 @@ export function getComposition(): Composition {
 
     cached = {
       logger,
-      services: { ping: createPingService({ clock }) },
+      services: { ping: createPingService({ clock }), capture: composeCapture(logger) },
       oauth: composeOAuth(logger),
     };
   }

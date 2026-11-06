@@ -1,7 +1,7 @@
 import { useId } from "react";
-import type { TextareaHTMLAttributes } from "react";
+import type { ComponentProps } from "react";
 
-export interface TextAreaFieldProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
+export interface TextAreaFieldProps extends ComponentProps<"textarea"> {
   label: string;
 }
 

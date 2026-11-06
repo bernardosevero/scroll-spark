@@ -1,11 +1,12 @@
 "use client";
 
-import { QueryClient, QueryClientProvider, useMutation } from "@tanstack/react-query";
-import { useEffect, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { useEffect } from "react";
 
-import { createApiClient } from "@scroll-spark/api/client";
-import { TRPCProvider, useTRPC } from "@scroll-spark/api/react";
+import { useTRPC } from "@scroll-spark/api/react";
 import { PingCard } from "@scroll-spark/ui/ping-card";
+
+import { ApiProvider } from "../api/api-provider";
 
 function PingResult() {
   const trpc = useTRPC();
@@ -21,14 +22,9 @@ function PingResult() {
 }
 
 export function PingPanel() {
-  const [queryClient] = useState(() => new QueryClient());
-  const [trpcClient] = useState(() => createApiClient({ url: "/api/trpc" }));
-
   return (
-    <QueryClientProvider client={queryClient}>
-      <TRPCProvider queryClient={queryClient} trpcClient={trpcClient}>
-        <PingResult />
-      </TRPCProvider>
-    </QueryClientProvider>
+    <ApiProvider>
+      <PingResult />
+    </ApiProvider>
   );
 }

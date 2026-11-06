@@ -26,8 +26,14 @@ const envSchema = z
     DATABASE_URL: optional(z.url()),
     EXTENSION_ORIGIN: optional(z.string().startsWith("chrome-extension://")),
     SECRET_KEY: optional(secretKey),
+    /** Swaps real services for fakes in browser flows. Refused on any Vercel deployment. */
+    E2E_FAKES: optional(z.literal("1")),
   })
   .superRefine((env, context) => {
+    if (env.VERCEL_ENV !== undefined && env.E2E_FAKES !== undefined) {
+      context.addIssue({ code: "custom", path: ["E2E_FAKES"], message: "is for local tests only" });
+    }
+
     if (env.VERCEL_ENV !== "production") {
       return;
     }
