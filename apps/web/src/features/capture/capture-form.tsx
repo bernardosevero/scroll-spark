@@ -11,6 +11,7 @@ import { useTRPC } from "@scroll-spark/api/react";
 import { Button } from "@scroll-spark/ui/button";
 import { Card } from "@scroll-spark/ui/card";
 import { ChipButton } from "@scroll-spark/ui/chip-button";
+import { PostLift } from "@scroll-spark/ui/post-lift";
 import { TextAreaField } from "@scroll-spark/ui/text-area-field";
 
 import { EXAMPLE_POSTS } from "./examples";
@@ -110,16 +111,19 @@ export function CaptureForm() {
             What caught your eye?
           </h1>
 
-          <TextAreaField
-            ref={field}
-            label="Paste a post or a link"
-            placeholder="Paste the text here"
-            value={text}
-            onChange={(event) => {
-              setText(event.target.value);
-              setCantRead(false);
-            }}
-          />
+          <div className="relative">
+            <TextAreaField
+              ref={field}
+              label="Paste a post or a link"
+              placeholder="Paste the text here"
+              value={text}
+              onChange={(event) => {
+                setText(event.target.value);
+                setCantRead(false);
+              }}
+            />
+            <PostLift isLifting={create.isSuccess} text={create.variables?.text ?? text} />
+          </div>
 
           <div role="status" className="flex flex-col gap-2 empty:hidden">
             {cantRead && (

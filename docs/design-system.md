@@ -67,6 +67,8 @@ These get the effort. Everything else stays calm.
 4. **Save idea:** the card flies into the Ideas pile.
 5. **Queued:** a short burst of sparks.
 
+Each has a shared component with a specimen at `/system`: `PostLift`, `SparkWait`, `FitReveal` (with `CountUp`), `IdeaFlight` and `SparkBurst`. Each decorative layer is `aria-hidden` and takes no clicks, and with reduced motion it isn't drawn at all.
+
 The prototype of all five is on the [design canvas](https://claude.ai/artifact/EAAmg5cCVLGi24JhtKxJGc). It's private until the owner shares it.
 
 ## Voice
