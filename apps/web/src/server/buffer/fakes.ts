@@ -4,7 +4,8 @@ import type {
   QuotaStore,
 } from "@scroll-spark/core/buffer/buffer.service";
 import type { BufferPreferences } from "@scroll-spark/core/buffer/channel-settings.service";
-import type { BufferChannel, QuotaWindow } from "@scroll-spark/core/buffer/schemas";
+import type { BufferChannel, BufferPost, QuotaWindow } from "@scroll-spark/core/buffer/schemas";
+import { AppError } from "@scroll-spark/core/errors/app-error";
 
 /** Memory only. Used by browser flows, and where no database exists so nobody can sign in. */
 export function createMemoryBufferCache(): BufferCache {
@@ -91,7 +92,22 @@ const CHANNELS: Record<string, BufferChannel[]> = {
   "org-side": [channel("ch-side-linkedin", "linkedin", "side-project")],
 };
 
-/** Answers without calling Buffer. Used by browser flows. */
+const DAY_MS = 86_400_000;
+
+/** Enough sent posts on the example LinkedIn channel to learn a voice from. */
+function samplePosts(channelId: string): BufferPost[] {
+  return Array.from({ length: 4 }, (_, index) => ({
+    id: `post-${String(index)}`,
+    channelId,
+    text: `Week ${String(index + 1)}: I rewrote our onboarding twice, and the only change that mattered was one plain email asking people what stopped them.`,
+    status: "sent",
+    sentAt: new Date(Date.now() - (index + 1) * DAY_MS).toISOString(),
+  }));
+}
+
+let ideaCount = 0;
+
+/** Answers without calling Buffer. Used by browser flows. Text containing "[limit]" plays a plan limit. */
 export const fakeBufferGateway: BufferGateway = {
   account(token) {
     const isSolo = token === `${TOKEN_PREFIX}${SOLO_ORGANIZATION_USER_ID}`;
@@ -104,10 +120,25 @@ export const fakeBufferGateway: BufferGateway = {
   },
   channels: (_token, organizationId) =>
     Promise.resolve({ data: CHANNELS[organizationId] ?? [], quota: [] }),
-  posts: () =>
-    Promise.resolve({ data: { posts: [], endCursor: null, hasNextPage: false }, quota: [] }),
+  posts: (_token, { channelIds }) =>
+    Promise.resolve({
+      data: {
+        posts: channelIds?.includes("ch-linkedin") === true ? samplePosts("ch-linkedin") : [],
+        endCursor: null,
+        hasNextPage: false,
+      },
+      quota: [],
+    }),
   ideas: () => Promise.resolve({ data: [], quota: [] }),
-  createIdea: () => Promise.resolve({ data: { id: "idea-fake" }, quota: [] }),
-  createPost: (_token, { channelId }) =>
-    Promise.resolve({ data: { id: "post-fake", channelId, status: "draft" }, quota: [] }),
+  createIdea() {
+    ideaCount += 1;
+    return Promise.resolve({ data: { id: `idea-fake-${String(ideaCount)}` }, quota: [] });
+  },
+  createPost: (_token, { channelId, text, saveToDraft }) =>
+    text.includes("[limit]")
+      ? Promise.reject(new AppError("BUFFER_LIMIT_REACHED"))
+      : Promise.resolve({
+          data: { id: "post-fake", channelId, status: saveToDraft ? "draft" : "scheduled" },
+          quota: [],
+        }),
 };

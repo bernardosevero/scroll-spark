@@ -11,6 +11,9 @@ export const APP_ERROR_CODES = [
   "BUFFER_LIMIT_REACHED",
   "LLM_REFUSED",
   "BUFFER_FAILED",
+  "CHANNEL_NOT_SUPPORTED",
+  "POST_TOO_LONG",
+  "DRAFT_LIMIT_REACHED",
 ] as const;
 
 export type AppErrorCode = (typeof APP_ERROR_CODES)[number];

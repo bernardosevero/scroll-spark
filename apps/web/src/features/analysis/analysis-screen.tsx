@@ -12,6 +12,7 @@ import { ChipLink } from "@scroll-spark/ui/chip-link";
 import { Reveal } from "@scroll-spark/ui/reveal";
 
 import { SessionOver } from "../capture/session-over";
+import { ShipPanel } from "../ship/ship-panel";
 import { AppFrame } from "../shell/app-frame";
 
 const COUNTRIES = [
@@ -194,6 +195,7 @@ function AnalysisContent({
             <p>{analysis.summary}</p>
           </Card>
           <TrendsLinks captureId={captureId} data={data} />
+          <ShipPanel captureId={captureId} sourceText={data.capture.text} />
           <SourceText data={data} />
         </div>
       </Reveal>

@@ -22,6 +22,10 @@
     "./logging/logger": "./src/logging/logger.ts",
     "./ping/ping.service": "./src/ping/ping.service.ts",
     "./ping/schemas": "./src/ping/schemas.ts",
+    "./ship/limits": "./src/ship/limits.ts",
+    "./ship/overlap": "./src/ship/overlap.ts",
+    "./ship/schemas": "./src/ship/schemas.ts",
+    "./ship/ship.service": "./src/ship/ship.service.ts",
     "./time/clock": "./src/time/clock.ts"
   },
   "scripts": {

@@ -43,6 +43,13 @@
       "when": 1793972552782,
       "tag": "0005_famous_marvel_zombies",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1793984688312,
+      "tag": "0006_milky_iron_fist",
+      "breakpoints": true
     }
   ]
 }

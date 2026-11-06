@@ -56,6 +56,11 @@ export const captures = pgTable(
     platform: text("platform").$type<CapturePlatform>().notNull(),
     /** Who it came from: a channel, a site or an author. Null when unknown. */
     sourceName: text("source_name"),
+    /**
+     * The Buffer Idea this capture became. Null until the user saves it. Only the ID is kept:
+     * Buffer owns the idea afterwards, and nothing syncs back.
+     */
+    bufferIdeaId: text("buffer_idea_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("captures_user_newest").on(table.userId, table.createdAt.desc())],
@@ -128,3 +133,22 @@ export const bufferQuota = pgTable("buffer_quota", {
   resetsAt: timestamp("resets_at", { withTimezone: true }).notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * One row each time a draft is requested, so the daily limit can be counted. It holds no text:
+ * drafts live in the editor until the user posts them.
+ */
+export const draftRuns = pgTable(
+  "draft_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    captureId: uuid("capture_id")
+      .notNull()
+      .references(() => captures.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("draft_runs_user_recent").on(table.userId, table.createdAt)],
+);

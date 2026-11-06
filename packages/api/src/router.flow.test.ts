@@ -5,6 +5,7 @@ import type { AccountService } from "@scroll-spark/core/account/account.service"
 import type { AnalysisService } from "@scroll-spark/core/analysis/analysis.service";
 import type { ChannelSettingsService } from "@scroll-spark/core/buffer/channel-settings.service";
 import type { CaptureService } from "@scroll-spark/core/capture/capture.service";
+import type { ShipService } from "@scroll-spark/core/ship/ship.service";
 import { AppError } from "@scroll-spark/core/errors/app-error";
 import type { ExtensionTokenService } from "@scroll-spark/core/extension-token/extension-token.service";
 import type { PingService } from "@scroll-spark/core/ping/ping.service";
@@ -62,10 +63,28 @@ function createChannels(): ChannelSettingsService {
   };
 }
 
+const DRAFT = {
+  text: "A draft.",
+  voice: { sampleCount: 8, isMatched: true },
+  overlap: { isClose: false, share: 0 },
+};
+
+function createShip(): ShipService {
+  return {
+    saveAsIdea: vi.fn(() => Promise.resolve({ ideaId: "idea-1", isNew: true })),
+    ideaOf: vi.fn(() => Promise.resolve({ ideaId: null })),
+    draft: vi.fn(() => Promise.resolve(DRAFT)),
+    createPost: vi.fn(() =>
+      Promise.resolve({ postId: "post-1", kind: "draft" as const, channelId: "ch-1" }),
+    ),
+  };
+}
+
 function callerWith(ping: PingService["ping"], userId: string | null = null) {
   const capture = createCapture();
   const analysis = createAnalysis();
   const channels = createChannels();
+  const ship = createShip();
   const account: AccountService = {
     status: vi.fn(() => Promise.resolve({ needsReconnect: false })),
     deleteMyData: vi.fn(() => Promise.resolve()),
@@ -75,6 +94,7 @@ function callerWith(ping: PingService["ping"], userId: string | null = null) {
     analysis,
     channels,
     account,
+    ship,
     caller: appRouter.createCaller({
       userId,
       credential: userId === null ? null : "session",
@@ -84,6 +104,7 @@ function callerWith(ping: PingService["ping"], userId: string | null = null) {
         analysis,
         channels,
         account,
+        ship,
         extensionTokens: createExtensionTokens(),
       },
     }),
@@ -119,6 +140,9 @@ describe("API flow", () => {
     ["BUFFER_LIMIT_REACHED", "PRECONDITION_FAILED"],
     ["LLM_REFUSED", "UNPROCESSABLE_CONTENT"],
     ["BUFFER_FAILED", "BAD_GATEWAY"],
+    ["CHANNEL_NOT_SUPPORTED", "BAD_REQUEST"],
+    ["POST_TOO_LONG", "BAD_REQUEST"],
+    ["DRAFT_LIMIT_REACHED", "TOO_MANY_REQUESTS"],
   ] as const)("maps AppError %s to tRPC %s", async (appCode, trpcCode) => {
     const { caller } = callerWith(() => {
       throw new AppError(appCode);
@@ -250,4 +274,54 @@ describe("capture API", () => {
       expect(capture.readLink).not.toHaveBeenCalled();
     },
   );
+});
+
+describe("ship API", () => {
+  const postInput = {
+    captureId: CAPTURE_ID,
+    channelId: "ch-1",
+    text: "A post.",
+    kind: "queue",
+  } as const;
+  const draftInput = { captureId: CAPTURE_ID, channelId: "ch-1" } as const;
+
+  it.each([
+    [
+      "capture.saveAsIdea",
+      (caller: Caller) => caller.capture.saveAsIdea({ captureId: CAPTURE_ID }),
+    ],
+    ["capture.ideaOf", (caller: Caller) => caller.capture.ideaOf({ captureId: CAPTURE_ID })],
+    ["draft.create", (caller: Caller) => caller.draft.create(draftInput)],
+    ["post.create", (caller: Caller) => caller.post.create(postInput)],
+  ])("refuses %s when signed out", async (_name, call) => {
+    const { caller, ship } = callerWith(noPing, null);
+
+    await expect(call(caller)).rejects.toMatchObject({ message: "NOT_SIGNED_IN" });
+    expect(ship.saveAsIdea).not.toHaveBeenCalled();
+    expect(ship.draft).not.toHaveBeenCalled();
+    expect(ship.createPost).not.toHaveBeenCalled();
+  });
+
+  it("passes the signed-in user to the service, with the language following the channel", async () => {
+    const { caller, ship } = callerWith(noPing, "user-1");
+
+    await caller.capture.saveAsIdea({ captureId: CAPTURE_ID });
+    await expect(caller.draft.create(draftInput)).resolves.toEqual(DRAFT);
+    await caller.post.create(postInput);
+
+    expect(ship.saveAsIdea).toHaveBeenCalledWith("user-1", { captureId: CAPTURE_ID });
+    expect(ship.draft).toHaveBeenCalledWith("user-1", { ...draftInput, language: "same" });
+    expect(ship.createPost).toHaveBeenCalledWith("user-1", postInput);
+  });
+
+  it.each([
+    ["a capture ID that isn't one", { ...postInput, captureId: "nope" }],
+    ["a post kind we don't have", { ...postInput, kind: "now" }],
+    ["far too much text", { ...postInput, text: "a".repeat(10_001) }],
+  ])("refuses %s", async (_name, bad) => {
+    const { caller, ship } = callerWith(noPing, "user-1");
+
+    await expect(caller.post.create(bad as never)).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(ship.createPost).not.toHaveBeenCalled();
+  });
 });
