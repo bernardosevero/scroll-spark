@@ -10,6 +10,7 @@ export const APP_ERROR_CODES = [
   "BUFFER_RATE_LIMITED",
   "BUFFER_LIMIT_REACHED",
   "LLM_REFUSED",
+  "BUFFER_FAILED",
 ] as const;
 
 export type AppErrorCode = (typeof APP_ERROR_CODES)[number];
@@ -17,9 +18,13 @@ export type AppErrorCode = (typeof APP_ERROR_CODES)[number];
 export class AppError extends Error {
   readonly code: AppErrorCode;
 
-  constructor(code: AppErrorCode, options?: ErrorOptions) {
+  /** Seconds Buffer asked us to wait, on a rate limit. Null when it didn't say. */
+  readonly retryAfterSeconds: number | null;
+
+  constructor(code: AppErrorCode, options?: ErrorOptions & { retryAfterSeconds?: number }) {
     super(code, options);
     this.name = "AppError";
     this.code = code;
+    this.retryAfterSeconds = options?.retryAfterSeconds ?? null;
   }
 }

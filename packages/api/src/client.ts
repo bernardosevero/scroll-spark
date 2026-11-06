@@ -3,6 +3,7 @@ import { TRPCClientError, createTRPCClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "./router";
 
 export type { CapturedAnalysis } from "@scroll-spark/core/analysis/schemas";
+export type { ChannelView } from "@scroll-spark/core/buffer/schemas";
 export { MAX_CAPTURE_LENGTH } from "@scroll-spark/core/capture/limits";
 export type { Capture, CapturePlatform } from "@scroll-spark/core/capture/schemas";
 

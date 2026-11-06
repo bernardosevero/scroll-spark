@@ -7,6 +7,13 @@ import {
   capturedAnalysisSchema,
   setTrendsGeoInputSchema,
 } from "@scroll-spark/core/analysis/schemas";
+import type { ChannelSettingsService } from "@scroll-spark/core/buffer/channel-settings.service";
+import {
+  accountViewSchema,
+  channelIdsInputSchema,
+  channelsViewSchema,
+  organizationIdInputSchema,
+} from "@scroll-spark/core/buffer/schemas";
 import type { CaptureService } from "@scroll-spark/core/capture/capture.service";
 import {
   captureSchema,
@@ -27,6 +34,7 @@ export interface ApiContext {
     ping: PingService;
     capture: CaptureService;
     analysis: AnalysisService;
+    channels: ChannelSettingsService;
   };
 }
 
@@ -41,6 +49,7 @@ const TRPC_CODE_BY_APP_CODE: Record<AppErrorCode, TRPC_ERROR_CODE_KEY> = {
   BUFFER_RATE_LIMITED: "TOO_MANY_REQUESTS",
   BUFFER_LIMIT_REACHED: "PRECONDITION_FAILED",
   LLM_REFUSED: "UNPROCESSABLE_CONTENT",
+  BUFFER_FAILED: "BAD_GATEWAY",
 };
 
 const trpc = initTRPC.context<ApiContext>().create({
@@ -96,6 +105,21 @@ export const appRouter = trpc.router({
       .input(captureIdInputSchema)
       .output(capturedAnalysisSchema)
       .mutation(({ ctx, input }) => ctx.services.analysis.analyze(ctx.userId, input)),
+  }),
+
+  buffer: trpc.router({
+    account: signedInProcedure
+      .output(accountViewSchema)
+      .query(({ ctx }) => ctx.services.channels.account(ctx.userId)),
+    channels: signedInProcedure
+      .output(channelsViewSchema)
+      .query(({ ctx }) => ctx.services.channels.channels(ctx.userId)),
+    setOrganization: signedInProcedure
+      .input(organizationIdInputSchema)
+      .mutation(({ ctx, input }) => ctx.services.channels.setOrganization(ctx.userId, input)),
+    setDefaultChannels: signedInProcedure
+      .input(channelIdsInputSchema)
+      .mutation(({ ctx, input }) => ctx.services.channels.setDefaultChannels(ctx.userId, input)),
   }),
 
   settings: trpc.router({

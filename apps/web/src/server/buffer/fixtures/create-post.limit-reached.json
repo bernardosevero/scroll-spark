@@ -1,0 +1,8 @@
+{
+  "data": {
+    "createPost": {
+      "__typename": "LimitReachedError",
+      "message": "You have reached the limit of scheduled posts. SECRET-POST-TEXT"
+    }
+  }
+}

@@ -2,6 +2,7 @@ import { TRPCError } from "@trpc/server";
 import { describe, expect, it, vi } from "vitest";
 
 import type { AnalysisService } from "@scroll-spark/core/analysis/analysis.service";
+import type { ChannelSettingsService } from "@scroll-spark/core/buffer/channel-settings.service";
 import type { CaptureService } from "@scroll-spark/core/capture/capture.service";
 import { AppError } from "@scroll-spark/core/errors/app-error";
 import type { PingService } from "@scroll-spark/core/ping/ping.service";
@@ -38,13 +39,30 @@ function createAnalysis(): AnalysisService {
   };
 }
 
+const ACCOUNT_VIEW = { organizations: [{ id: "org-1", name: "Studio" }], organizationId: "org-1" };
+const CHANNELS_VIEW = { organizationId: "org-1", channels: [], defaultChannelIds: [] };
+
+function createChannels(): ChannelSettingsService {
+  return {
+    account: vi.fn(() => Promise.resolve(ACCOUNT_VIEW)),
+    channels: vi.fn(() => Promise.resolve(CHANNELS_VIEW)),
+    setOrganization: vi.fn(() => Promise.resolve()),
+    setDefaultChannels: vi.fn(() => Promise.resolve()),
+  };
+}
+
 function callerWith(ping: PingService["ping"], userId: string | null = null) {
   const capture = createCapture();
   const analysis = createAnalysis();
+  const channels = createChannels();
   return {
     capture,
     analysis,
-    caller: appRouter.createCaller({ userId, services: { ping: { ping }, capture, analysis } }),
+    channels,
+    caller: appRouter.createCaller({
+      userId,
+      services: { ping: { ping }, capture, analysis, channels },
+    }),
   };
 }
 
@@ -76,6 +94,7 @@ describe("API flow", () => {
     ["BUFFER_RATE_LIMITED", "TOO_MANY_REQUESTS"],
     ["BUFFER_LIMIT_REACHED", "PRECONDITION_FAILED"],
     ["LLM_REFUSED", "UNPROCESSABLE_CONTENT"],
+    ["BUFFER_FAILED", "BAD_GATEWAY"],
   ] as const)("maps AppError %s to tRPC %s", async (appCode, trpcCode) => {
     const { caller } = callerWith(() => {
       throw new AppError(appCode);
