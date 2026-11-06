@@ -13,6 +13,8 @@ import { AppError } from "@scroll-spark/core/errors/app-error";
 import { createFitService } from "@scroll-spark/core/fit/fit.service";
 import type { Logger } from "@scroll-spark/core/logging/logger";
 import { createPingService } from "@scroll-spark/core/ping/ping.service";
+import { createShipService } from "@scroll-spark/core/ship/ship.service";
+import type { DraftWriter } from "@scroll-spark/core/ship/ship.service";
 
 import { createBufferAuthGateway } from "./auth/buffer-auth-gateway";
 import type { OAuthContext } from "./auth/oauth-handlers";
@@ -51,9 +53,12 @@ import { createDb } from "./db/client";
 import { createProfileRepository } from "./db/fit-repository";
 import { createExtensionTokenRepository } from "./db/extension-token-repository";
 import { createGrantRepository } from "./db/grant-repository";
+import { createDraftRunRepository, createIdeaLinkRepository } from "./db/ship-repository";
 import { getEnv } from "./env";
+import { createAnthropicDrafter } from "./llm/anthropic-drafter";
 import { createAnthropicGateway } from "./llm/anthropic-gateway";
 import { createLogger } from "./logger";
+import { createMemoryDraftRuns, createMemoryIdeaLinks, fakeDraftWriter } from "./ship/fakes";
 
 interface Composition {
   logger: Logger;
@@ -103,6 +108,8 @@ function composeStores() {
     const analyses = createMemoryAnalysisRepository();
     const settings = createMemoryUserSettings();
     const profiles = createMemoryProfileRepository();
+    const ideaLinks = createMemoryIdeaLinks();
+    const draftRuns = createMemoryDraftRuns();
     const extensionTokens = createMemoryExtensionTokenRepository();
 
     return {
@@ -110,6 +117,8 @@ function composeStores() {
       analyses,
       settings,
       profiles,
+      ideaLinks,
+      draftRuns,
       extensionTokens,
       accounts: createMemoryAccountRepository([
         captures,
@@ -117,6 +126,8 @@ function composeStores() {
         settings,
         profiles,
         extensionTokens,
+        ideaLinks,
+        draftRuns,
       ]),
       bufferCache: createMemoryBufferCache(),
       bufferQuota: createMemoryQuotaStore(),
@@ -131,6 +142,8 @@ function composeStores() {
     analyses: createAnalysisRepository({ db }),
     settings: createUserSettingsRepository({ db }),
     profiles: createProfileRepository({ db }),
+    ideaLinks: createIdeaLinkRepository({ db }),
+    draftRuns: createDraftRunRepository({ db }),
     extensionTokens: createExtensionTokenRepository({ db }),
     bufferCache: createBufferCacheRepository({ db }),
     bufferQuota: createBufferQuotaRepository({ db }),
@@ -185,6 +198,20 @@ function composeLlm(logger: Logger): LlmGateway {
   });
 }
 
+function composeDraftWriter(logger: Logger): DraftWriter {
+  const { ANTHROPIC_API_KEY, E2E_FAKES } = getEnv();
+
+  if (E2E_FAKES !== undefined) {
+    return fakeDraftWriter;
+  }
+
+  // Same rules as the analysis: no retries, since each call costs money, and a timeout under the
+  // route's own limit.
+  const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY ?? "", maxRetries: 0, timeout: 50_000 });
+
+  return createAnthropicDrafter({ parse: (request) => client.messages.parse(request), logger });
+}
+
 function composeProductServices(logger: Logger, oauth: OAuthContext | null) {
   const stores = composeStores();
   const { captures, analyses, settings, accounts, extensionTokens, profiles } = stores;
@@ -212,6 +239,17 @@ function composeProductServices(logger: Logger, oauth: OAuthContext | null) {
       clock,
     }),
     channels,
+    ship: createShipService({
+      captures,
+      analyses,
+      settings,
+      ideas: stores.ideaLinks,
+      runs: stores.draftRuns,
+      buffer,
+      channels,
+      writer: composeDraftWriter(logger),
+      clock,
+    }),
   };
 }
 

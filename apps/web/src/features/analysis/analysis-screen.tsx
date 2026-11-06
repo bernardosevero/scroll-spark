@@ -13,6 +13,7 @@ import { FitRow } from "@scroll-spark/ui/fit-row";
 import { Reveal } from "@scroll-spark/ui/reveal";
 
 import { SessionOver } from "../capture/session-over";
+import { ShipPanel } from "../ship/ship-panel";
 import { AppFrame } from "../shell/app-frame";
 
 const COUNTRIES = [
@@ -236,6 +237,7 @@ function AnalysisContent({
           </Card>
           <FitCheck analysis={analysis} />
           <TrendsLinks captureId={captureId} data={data} />
+          <ShipPanel captureId={captureId} sourceText={data.capture.text} />
           <SourceText data={data} />
         </div>
       </Reveal>

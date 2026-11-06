@@ -19,5 +19,17 @@ Things nobody has confirmed against Buffer:
 - Whether `createIdea` needs `tags: []`, and what `assets` looks like for a text-only post.
 - That typed errors arrive as `{ "__typename": "LimitReachedError" }` inside HTTP 200. The error type
   names are from the reference, the payload shape is assumed.
+- Added with #8 (save ideas, draft, create posts), all unconfirmed:
+  - That a draft is sent as `mode: "addToQueue"` with `saveToDraft: true`, and that Buffer then
+    saves a draft rather than queueing. `mode` is required, so drafts need some value, and
+    `addToQueue` is the least risky.
+  - That a queued post sends `saveToDraft: false`, and what `addToQueue` does on a channel with no
+    posting slots (it is shown as a generic "wouldn't add this" message).
+  - That `schedulingType: "automatic"` is a valid value, and that `assets: {}` is how "no media"
+    looks (the issue wrote `assets: []`).
+  - That sent posts have `status: "sent"` or a non-null `sentAt`. Voice samples rely on this.
+  - The per-channel character limits in `core/src/ship/limits.ts`, and how X counts links and
+    non-Latin text.
+  - Whether the idea's `title` is shown by Buffer, since the topic is also in the text.
 - The `RateLimit` and `RateLimit-Policy` header format, copied from the issue's example.
 - The exact body of a 429 and of a 401.

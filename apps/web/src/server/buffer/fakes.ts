@@ -10,6 +10,7 @@ import type {
   BufferPost,
   QuotaWindow,
 } from "@scroll-spark/core/buffer/schemas";
+import { AppError } from "@scroll-spark/core/errors/app-error";
 
 /** Memory only. Used by browser flows, and where no database exists so nobody can sign in. */
 export function createMemoryBufferCache(): BufferCache {
@@ -178,7 +179,9 @@ const IDEAS: BufferIdea[] = [
   { id: "idea-3", text: "Thread on keyboard shortcuts" },
 ];
 
-/** Answers without calling Buffer. Used by browser flows. */
+let ideaCount = 0;
+
+/** Answers without calling Buffer. Used by browser flows. Text containing "[limit]" plays a plan limit. */
 export const fakeBufferGateway: BufferGateway = {
   account(token) {
     const isSolo = token === `${TOKEN_PREFIX}${SOLO_ORGANIZATION_USER_ID}`;
@@ -202,7 +205,15 @@ export const fakeBufferGateway: BufferGateway = {
     }),
   ideas: (_token, organizationId) =>
     Promise.resolve({ data: organizationId === "org-studio" ? IDEAS : [], quota: [] }),
-  createIdea: () => Promise.resolve({ data: { id: "idea-fake" }, quota: [] }),
-  createPost: (_token, { channelId }) =>
-    Promise.resolve({ data: { id: "post-fake", channelId, status: "draft" }, quota: [] }),
+  createIdea() {
+    ideaCount += 1;
+    return Promise.resolve({ data: { id: `idea-fake-${String(ideaCount)}` }, quota: [] });
+  },
+  createPost: (_token, { channelId, text, saveToDraft }) =>
+    text.includes("[limit]")
+      ? Promise.reject(new AppError("BUFFER_LIMIT_REACHED"))
+      : Promise.resolve({
+          data: { id: "post-fake", channelId, status: saveToDraft ? "draft" : "scheduled" },
+          quota: [],
+        }),
 };

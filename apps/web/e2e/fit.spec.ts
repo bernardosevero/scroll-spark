@@ -12,8 +12,13 @@ async function analyzeExample(page: Page) {
   await expect(page.getByRole("heading", { name: "How it fits your channels" })).toBeVisible();
 }
 
+/** The rows of the fit section, since the draft's channel choice below it is a list too. */
+function fitRows(page: Page) {
+  return page.getByRole("region", { name: "How it fits your channels" }).getByRole("listitem");
+}
+
 function row(page: Page, headline: string) {
-  return page.getByRole("listitem").filter({ has: page.getByText(headline, { exact: true }) });
+  return fitRows(page).filter({ has: page.getByText(headline, { exact: true }) });
 }
 
 test.describe("with one organization and its channels", () => {
@@ -40,10 +45,8 @@ test.describe("with one organization and its channels", () => {
   });
 
   test("channels we can't read are left out", async ({ page }) => {
-    await expect(page.getByRole("listitem").filter({ hasText: /threads|mastodon/i })).toHaveCount(
-      0,
-    );
-    await expect(page.getByRole("listitem").filter({ has: page.locator("b") })).toHaveCount(4);
+    await expect(fitRows(page).filter({ hasText: /threads|mastodon/i })).toHaveCount(0);
+    await expect(fitRows(page).filter({ has: page.locator("b") })).toHaveCount(4);
   });
 
   test("a channel with thin history shows the empty state", async ({ page }) => {
