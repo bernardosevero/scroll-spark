@@ -349,6 +349,58 @@ describe("the analysis", () => {
   });
 });
 
+describe("closing the panel partway through", () => {
+  it("doesn't offer a saved capture again, so it can't be saved or spent on twice", async () => {
+    const api = stubApi();
+    const { environment } = createEnvironment(TOKEN, FOUND);
+    renderPanel(environment);
+    await field();
+    click("Find the spark");
+
+    await screen.findByRole("heading", { name: ANALYSIS.analysis.angle });
+    await expect(environment.readPending()).resolves.toBeNull();
+
+    cleanup();
+    renderPanel(environment);
+
+    expect(await screen.findByText("Spot something good?")).toBeInTheDocument();
+    expect(api.called("capture.create")).toHaveLength(1);
+  });
+
+  it("keeps showing the flow after the capture is saved, through to the end", async () => {
+    await toTheAnalysis();
+
+    click("Save idea");
+
+    expect(await screen.findByText("Saved to Buffer Ideas")).toBeInTheDocument();
+  });
+
+  it("keeps an unsaved capture for another try", async () => {
+    stubApi({ "capture.create": failure("BAD_REQUEST") });
+    const { environment } = createEnvironment(TOKEN, FOUND);
+    renderPanel(environment);
+    await field();
+    click("Find the spark");
+
+    await screen.findByRole("alert");
+
+    await expect(environment.readPending()).resolves.toEqual(FOUND);
+  });
+
+  it("opens a new capture that arrives after one was saved", async () => {
+    stubApi();
+    const { environment, capture } = createEnvironment(TOKEN, FOUND);
+    renderPanel(environment);
+    await field();
+    click("Find the spark");
+    await screen.findByRole("heading", { name: ANALYSIS.analysis.angle });
+
+    capture({ ...FOUND, id: "capture-next" });
+
+    expect(await field()).toBeInTheDocument();
+  });
+});
+
 describe("saving the idea", () => {
   it("moves to Saved, then on to the draft", async () => {
     const api = await toTheAnalysis();

@@ -83,11 +83,14 @@ export function CaptureFlow({
   pending,
   webOrigin,
   connectUrl,
+  onSaved,
   onFinish,
 }: {
   pending: PendingCapture;
   webOrigin: string;
   connectUrl: string;
+  /** The capture is in the inbox now, so it must not be offered for saving again. */
+  onSaved: () => void;
   onFinish: () => void;
 }) {
   const trpc = useTRPC();
@@ -113,6 +116,7 @@ export function CaptureFlow({
       },
       {
         onSuccess: ({ id }) => {
+          onSaved();
           analyzeCapture({ captureId: id });
         },
       },

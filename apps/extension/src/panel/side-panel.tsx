@@ -1,5 +1,8 @@
+import { useState } from "react";
+
 import { SparkMark } from "@scroll-spark/ui/spark-mark";
 
+import type { PendingCapture } from "../capture/pending-capture";
 import { isExpired } from "../lib/connect-message";
 import { CaptureFlow } from "./capture-flow";
 import type { PanelEnvironment } from "./environment";
@@ -16,7 +19,16 @@ export function SidePanel({
 }) {
   const token = useEnvironmentValue(environment, readToken);
   const pending = useEnvironmentValue(environment, readPending);
+  // Stored until saved, then held here, so reopening the panel can't save the same capture twice
+  // while this flow carries on to its later stages.
+  const [held, setHeld] = useState<PendingCapture | null>(null);
   const connectUrl = `${webOrigin}/extension/connect`;
+
+  if (pending != null && pending.id !== held?.id) {
+    setHeld(pending);
+  }
+
+  const current = pending ?? held;
 
   function body() {
     if (token === undefined || pending === undefined) {
@@ -27,18 +39,22 @@ export function SidePanel({
       return <SignedOut connectUrl={connectUrl} />;
     }
 
-    if (pending === null) {
+    if (current === null) {
       return <Idle />;
     }
 
     return (
       <CaptureFlow
         // A new capture starts a fresh flow, so one capture's edits never leak into the next.
-        key={pending.id}
-        pending={pending}
+        key={current.id}
+        pending={current}
         webOrigin={webOrigin}
         connectUrl={connectUrl}
-        onFinish={() => void environment.clearPending()}
+        onSaved={() => void environment.clearPending()}
+        onFinish={() => {
+          setHeld(null);
+          void environment.clearPending();
+        }}
       />
     );
   }

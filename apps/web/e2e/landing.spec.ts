@@ -3,6 +3,16 @@ import type { Page } from "@playwright/test";
 
 import { signIn } from "./support/session";
 
+test("the site has its own icon", async ({ page, request }) => {
+  await page.goto("/");
+
+  const href = await page.locator('link[rel="icon"][type="image/svg+xml"]').getAttribute("href");
+  const response = await request.get(href ?? "");
+
+  expect(response.status()).toBe(200);
+  expect(response.headers()["content-type"]).toContain("image/svg+xml");
+});
+
 async function expectNoSidewaysScroll(page: Page) {
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
