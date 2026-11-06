@@ -262,9 +262,29 @@ flowchart LR
   post -- no --> page{Ordinary page?}
   page -- yes --> title[Title and URL] --> found
   page -- no, or markup changed --> empty[Ask the user to select the text]
-  found --> review[Panel: correct, then Save to inbox]
+  found --> review[Panel: correct, then Find the spark]
   empty --> review
 ```
+
+## The side panel's flow
+
+The panel is a thin client on the same procedures as the website. It holds no product rules: it shows what the API answers and says what failed. The analysis card, fit check, Trends links and draft editor are shared components in `packages/ui` that render props, and the website feeds them the same way. The one decision both hosts needed, which channel to write for, is `chooseChannel` in `packages/core`. The panel never chooses the Buffer organization or default channels. It links to the website's Channels page.
+
+```mermaid
+flowchart LR
+  review[Review and edit] -- capture.create, capture.analyze --> wait[Finding the spark]
+  wait --> card[Analysis card]
+  wait -- failed, capture kept --> retry[Message, Try again, inbox link]
+  retry --> wait
+  card -- capture.saveAsIdea --> saved[Saved to Buffer Ideas]
+  card -- Draft a post --> draft
+  saved --> draft[Draft editor<br/>buffer.channels, draft.create]
+  draft -- post.create, once, never retried --> done[Done]
+  draft -- failed, text kept --> draft
+  done --> idle[Capture another]
+```
+
+A queued post may publish for real, so `post.create` is sent once and never retried. Each expected failure shows its own message and leaves the user's text on screen.
 
 ## Where each decision is recorded
 
