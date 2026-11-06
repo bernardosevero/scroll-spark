@@ -11,6 +11,7 @@ import { Card } from "@scroll-spark/ui/card";
 import { ChipLink } from "@scroll-spark/ui/chip-link";
 import { FitRow } from "@scroll-spark/ui/fit-row";
 import { Reveal } from "@scroll-spark/ui/reveal";
+import { analysisFailureMessage } from "@scroll-spark/ui/ship-messages";
 
 import { SessionOver } from "../capture/session-over";
 import { ShipPanel } from "../ship/ship-panel";
@@ -29,17 +30,6 @@ const COUNTRIES = [
   ["DE", "Germany"],
   ["IN", "India"],
 ] as const;
-
-function analysisFailureMessage(code: string | null) {
-  switch (code) {
-    case "LLM_REFUSED":
-      return "We couldn't analyze this one. Your capture is safe in your inbox.";
-    case "ANALYSIS_LIMIT_REACHED":
-      return "That's today's limit reached. Your capture is safe, so come back tomorrow.";
-    default:
-      return "That didn't work this time. Your capture is safe, so you can try again.";
-  }
-}
 
 function useCapturedAnalysis(captureId: string) {
   const trpc = useTRPC();

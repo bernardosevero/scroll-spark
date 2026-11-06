@@ -16,7 +16,12 @@ import { Button } from "@scroll-spark/ui/button";
 import { TextAreaField } from "@scroll-spark/ui/text-area-field";
 
 import { SessionOver } from "../capture/session-over";
-import { draftFailureMessage, postFailureMessage, serviceName } from "./ship-messages";
+import {
+  draftFailureMessage,
+  postFailureMessage,
+  serviceName,
+  voiceNote,
+} from "@scroll-spark/ui/ship-messages";
 
 type Language = (typeof DRAFT_LANGUAGES)[number];
 type Kind = "draft" | "queue";
@@ -29,21 +34,6 @@ const LANGUAGE_LABELS: Record<Language, string> = {
   french: "French",
   german: "German",
 };
-
-const MIN_SAMPLES = 3;
-
-function voiceNote({ sampleCount, isMatched }: DraftResult["voice"]) {
-  if (isMatched) {
-    return `Written from your last ${String(sampleCount)} posts on this channel.`;
-  }
-
-  const found =
-    sampleCount === 0
-      ? "no usable posts"
-      : `only ${String(sampleCount)} usable post${sampleCount === 1 ? "" : "s"}`;
-
-  return `We found ${found} on this channel, and a draft needs ${String(MIN_SAMPLES)} to sound like you. This one is in a plain voice, so make it yours.`;
-}
 
 function Counter({ id, count, limit }: { id: string; count: number; limit: number | null }) {
   const over = limit === null ? 0 : count - limit;

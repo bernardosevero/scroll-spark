@@ -12,6 +12,7 @@
     "./ping-card": "./src/ping-card.tsx",
     "./reconnect-notice": "./src/reconnect-notice.tsx",
     "./reveal": "./src/reveal.tsx",
+    "./ship-messages": "./src/ship-messages.ts",
     "./spark-burst": "./src/spark-burst.tsx",
     "./spark-mark": "./src/spark-mark.tsx",
     "./text-area-field": "./src/text-area-field.tsx",

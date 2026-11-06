@@ -10,7 +10,7 @@ import { Button, ButtonLink } from "@scroll-spark/ui/button";
 import { SessionOver } from "../capture/session-over";
 import { ChannelChoice } from "./channel-choice";
 import { DraftEditor } from "./draft-editor";
-import { ideaFailureMessage } from "./ship-messages";
+import { ideaFailureMessage } from "@scroll-spark/ui/ship-messages";
 
 function SaveIdea({ captureId }: { captureId: string }) {
   const trpc = useTRPC();
