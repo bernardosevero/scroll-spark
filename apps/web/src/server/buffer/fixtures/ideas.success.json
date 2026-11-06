@@ -1,0 +1,16 @@
+{
+  "data": {
+    "ideas": {
+      "edges": [
+        {
+          "cursor": "cursor_1",
+          "node": {
+            "id": "idea_example_1",
+            "content": { "title": "An example idea", "text": "What the idea says." }
+          }
+        }
+      ],
+      "pageInfo": { "endCursor": "cursor_1", "hasNextPage": false }
+    }
+  }
+}

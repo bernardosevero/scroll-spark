@@ -1,0 +1,21 @@
+{
+  "data": {
+    "posts": {
+      "edges": [
+        {
+          "cursor": "cursor_1",
+          "node": {
+            "id": "post_example_1",
+            "channelId": "ch_example_1",
+            "text": "A SECRET-POST-TEXT example post.",
+            "status": "sent",
+            "dueAt": "2026-10-01T14:00:00.000Z",
+            "sentAt": "2026-10-01T14:00:03.000Z",
+            "ideaId": null
+          }
+        }
+      ],
+      "pageInfo": { "endCursor": "cursor_1", "hasNextPage": true }
+    }
+  }
+}

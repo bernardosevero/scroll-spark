@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { AccountService } from "@scroll-spark/core/account/account.service";
 import type { AnalysisService } from "@scroll-spark/core/analysis/analysis.service";
+import type { ChannelSettingsService } from "@scroll-spark/core/buffer/channel-settings.service";
 import type { CaptureService } from "@scroll-spark/core/capture/capture.service";
 import type { ExtensionTokenService } from "@scroll-spark/core/extension-token/extension-token.service";
 
@@ -36,6 +38,8 @@ function setup() {
     capture,
     analysis: {} as AnalysisService,
     extensionTokens,
+    account: {} as AccountService,
+    channels: {} as ChannelSettingsService,
   };
 
   async function callCreate(request: {
@@ -85,6 +89,47 @@ describe("who is calling", () => {
   });
 });
 
+describe("deleting an account", () => {
+  function callerAs(credential: "session" | "extension") {
+    const account: AccountService = {
+      status: vi.fn(() => Promise.resolve({ needsReconnect: false })),
+      deleteMyData: vi.fn(() => Promise.resolve()),
+    };
+    const caller = appRouter.createCaller({
+      userId: "token-user",
+      credential,
+      services: {
+        ping: { ping: vi.fn() },
+        capture: {} as CaptureService,
+        analysis: {} as AnalysisService,
+        channels: {} as ChannelSettingsService,
+        extensionTokens: {} as ExtensionTokenService,
+        account,
+      },
+    });
+
+    return { account, caller };
+  }
+
+  it("is refused for a side panel token, so a stolen one can't erase an account", async () => {
+    const { account, caller } = callerAs("extension");
+
+    await expect(caller.account.deleteMyData()).rejects.toMatchObject({
+      message: "NOT_SIGNED_IN",
+    });
+
+    expect(account.deleteMyData).not.toHaveBeenCalled();
+  });
+
+  it("works from the website", async () => {
+    const { account, caller } = callerAs("session");
+
+    await caller.account.deleteMyData();
+
+    expect(account.deleteMyData).toHaveBeenCalledWith("token-user");
+  });
+});
+
 describe("minting and revoking connections", () => {
   it("is for the website's session only, so a stolen token can't renew itself", async () => {
     const { extensionTokens } = setup();
@@ -95,6 +140,8 @@ describe("minting and revoking connections", () => {
         ping: { ping: vi.fn() },
         capture: {} as CaptureService,
         analysis: {} as AnalysisService,
+        account: {} as AccountService,
+        channels: {} as ChannelSettingsService,
         extensionTokens,
       },
     });

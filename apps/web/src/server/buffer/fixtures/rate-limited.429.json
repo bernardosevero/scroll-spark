@@ -1,0 +1,8 @@
+{
+  "errors": [
+    {
+      "message": "Rate limit exceeded",
+      "extensions": { "code": "RATE_LIMIT_EXCEEDED", "window": "15min" }
+    }
+  ]
+}

@@ -1,12 +1,21 @@
 import { TRPCError, initTRPC } from "@trpc/server";
 import type { TRPC_ERROR_CODE_KEY } from "@trpc/server";
 
+import type { AccountService } from "@scroll-spark/core/account/account.service";
+import { accountStatusSchema } from "@scroll-spark/core/account/schemas";
 import type { AnalysisService } from "@scroll-spark/core/analysis/analysis.service";
 import {
   captureIdInputSchema,
   capturedAnalysisSchema,
   setTrendsGeoInputSchema,
 } from "@scroll-spark/core/analysis/schemas";
+import type { ChannelSettingsService } from "@scroll-spark/core/buffer/channel-settings.service";
+import {
+  accountViewSchema,
+  channelIdsInputSchema,
+  channelsViewSchema,
+  organizationIdInputSchema,
+} from "@scroll-spark/core/buffer/schemas";
 import type { CaptureService } from "@scroll-spark/core/capture/capture.service";
 import {
   captureSchema,
@@ -31,9 +40,11 @@ import type { Caller } from "./context";
 export interface ApiContext extends Caller {
   services: {
     ping: PingService;
+    account: AccountService;
     capture: CaptureService;
     analysis: AnalysisService;
     extensionTokens: ExtensionTokenService;
+    channels: ChannelSettingsService;
   };
 }
 
@@ -48,6 +59,7 @@ const TRPC_CODE_BY_APP_CODE: Record<AppErrorCode, TRPC_ERROR_CODE_KEY> = {
   BUFFER_RATE_LIMITED: "TOO_MANY_REQUESTS",
   BUFFER_LIMIT_REACHED: "PRECONDITION_FAILED",
   LLM_REFUSED: "UNPROCESSABLE_CONTENT",
+  BUFFER_FAILED: "BAD_GATEWAY",
 };
 
 const trpc = initTRPC.context<ApiContext>().create({
@@ -124,6 +136,31 @@ export const appRouter = trpc.router({
     revoke: sessionProcedure
       .input(revokeTokenInputSchema)
       .mutation(({ ctx, input }) => ctx.services.extensionTokens.revoke(ctx.userId, input)),
+  }),
+
+  buffer: trpc.router({
+    account: signedInProcedure
+      .output(accountViewSchema)
+      .query(({ ctx }) => ctx.services.channels.account(ctx.userId)),
+    channels: signedInProcedure
+      .output(channelsViewSchema)
+      .query(({ ctx }) => ctx.services.channels.channels(ctx.userId)),
+    setOrganization: signedInProcedure
+      .input(organizationIdInputSchema)
+      .mutation(({ ctx, input }) => ctx.services.channels.setOrganization(ctx.userId, input)),
+    setDefaultChannels: signedInProcedure
+      .input(channelIdsInputSchema)
+      .mutation(({ ctx, input }) => ctx.services.channels.setDefaultChannels(ctx.userId, input)),
+  }),
+
+  account: trpc.router({
+    status: signedInProcedure
+      .output(accountStatusSchema)
+      .query(({ ctx }) => ctx.services.account.status(ctx.userId)),
+    // Website only, so a stolen side panel token can't erase an account.
+    deleteMyData: sessionProcedure.mutation(({ ctx }) =>
+      ctx.services.account.deleteMyData(ctx.userId),
+    ),
   }),
 
   settings: trpc.router({

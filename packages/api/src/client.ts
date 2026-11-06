@@ -1,12 +1,22 @@
-import { TRPCClientError, createTRPCClient, httpBatchLink } from "@trpc/client";
+import {
+  TRPCClientError,
+  createTRPCClient,
+  httpBatchLink,
+  httpLink,
+  splitLink,
+} from "@trpc/client";
 
 import type { AppRouter } from "./router";
 
 export type { CapturedAnalysis } from "@scroll-spark/core/analysis/schemas";
+export type { ChannelView } from "@scroll-spark/core/buffer/schemas";
 export { MAX_CAPTURE_LENGTH } from "@scroll-spark/core/capture/limits";
 export type { Capture, CapturePlatform } from "@scroll-spark/core/capture/schemas";
 
 export type { ConnectedToken, ExtensionToken } from "@scroll-spark/core/extension-token/schemas";
+
+/** Pass as an operation's context to send it alone, so it never shares a request with others. */
+export const SEND_ALONE = { sendAlone: true } as const;
 
 /**
  * The website sends its cookie. The side panel passes `getToken`, and each request then carries
@@ -19,14 +29,17 @@ export function createApiClient({
   url: string;
   getToken?: () => Promise<string | null>;
 }) {
+  async function headers() {
+    const token = (await getToken?.()) ?? null;
+    return token === null ? {} : { authorization: `Bearer ${token}` };
+  }
+
   return createTRPCClient<AppRouter>({
     links: [
-      httpBatchLink({
-        url,
-        async headers() {
-          const token = (await getToken?.()) ?? null;
-          return token === null ? {} : { authorization: `Bearer ${token}` };
-        },
+      splitLink({
+        condition: (operation) => operation.context["sendAlone"] === true,
+        true: httpLink({ url, headers }),
+        false: httpBatchLink({ url, headers }),
       }),
     ],
   });

@@ -1,4 +1,14 @@
-import { boolean, index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  index,
+  integer,
+  jsonb,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 import type { CapturePlatform } from "@scroll-spark/core/capture/schemas";
 
@@ -8,6 +18,10 @@ export const users = pgTable("users", {
   bufferAccountId: text("buffer_account_id").notNull().unique(),
   /** Two-letter country for Google Trends links. Null means the default, the US. */
   trendsGeo: text("trends_geo"),
+  /** The Buffer organization the user works in. Null until chosen, or while they have only one. */
+  organizationId: text("organization_id"),
+  /** Channels to post to by default. Null means never chosen, and it resets with the organization. */
+  defaultChannelIds: jsonb("default_channel_ids").$type<string[]>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -85,3 +99,32 @@ export const analyses = pgTable(
   },
   (table) => [index("analyses_user_recent").on(table.userId, table.createdAt)],
 );
+
+/** A saved Buffer read, so repeat visits spend none of the shared quota. Per user and key. */
+export const bufferCache = pgTable(
+  "buffer_cache",
+  {
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    /** Names the read, like `channels:<organization>`. Writes clear entries by prefix. */
+    key: text("key").notNull(),
+    /** Buffer's parsed answer. Read back through Zod, so an old shape counts as a miss. */
+    body: jsonb("body").notNull(),
+    fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.userId, table.key] })],
+);
+
+/**
+ * The latest rate-limit window Buffer reported, one row per window length. Shared by every user,
+ * because the app client's quota is, and kept here because serverless functions share no memory.
+ */
+export const bufferQuota = pgTable("buffer_quota", {
+  /** The window's length. Windows are matched by this, since plan names change. */
+  windowSeconds: integer("window_seconds").primaryKey(),
+  quota: integer("quota").notNull(),
+  remaining: integer("remaining").notNull(),
+  resetsAt: timestamp("resets_at", { withTimezone: true }).notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

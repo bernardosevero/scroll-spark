@@ -1,18 +1,31 @@
 import Anthropic from "@anthropic-ai/sdk";
 
 import type { ApiContext } from "@scroll-spark/api/router";
+import { createAccountService } from "@scroll-spark/core/account/account.service";
 import { createAnalysisService } from "@scroll-spark/core/analysis/analysis.service";
 import type { LlmGateway } from "@scroll-spark/core/analysis/analysis.service";
 import { createAuthService } from "@scroll-spark/core/auth/auth.service";
+import { createBufferService } from "@scroll-spark/core/buffer/buffer.service";
+import { createChannelSettingsService } from "@scroll-spark/core/buffer/channel-settings.service";
 import { createCaptureService } from "@scroll-spark/core/capture/capture.service";
 import { createExtensionTokenService } from "@scroll-spark/core/extension-token/extension-token.service";
+import { AppError } from "@scroll-spark/core/errors/app-error";
 import type { Logger } from "@scroll-spark/core/logging/logger";
 import { createPingService } from "@scroll-spark/core/ping/ping.service";
 
 import { createBufferAuthGateway } from "./auth/buffer-auth-gateway";
 import type { OAuthContext } from "./auth/oauth-handlers";
 import { pkceCrypto } from "./auth/pkce";
+import { createBufferGateway } from "./buffer/buffer-gateway";
 import {
+  createMemoryBufferCache,
+  createMemoryBufferPreferences,
+  createMemoryQuotaStore,
+  fakeBufferGateway,
+  fakeTokenAuth,
+} from "./buffer/fakes";
+import {
+  createMemoryAccountRepository,
   createMemoryAnalysisRepository,
   createMemoryCaptureRepository,
   createMemoryExtensionTokenRepository,
@@ -24,7 +37,13 @@ import { createLinkReader } from "./capture/link-reader";
 import { tokenCrypto } from "./extension-token/token-crypto";
 import { createSafeGet } from "./capture/safe-get";
 import { createSealer } from "./crypto/seal";
+import { createAccountRepository } from "./db/account-repository";
 import { createAnalysisRepository, createUserSettingsRepository } from "./db/analysis-repository";
+import {
+  createBufferCacheRepository,
+  createBufferPreferencesRepository,
+  createBufferQuotaRepository,
+} from "./db/buffer-repository";
 import { createCaptureRepository } from "./db/capture-repository";
 import { createDb } from "./db/client";
 import { createExtensionTokenRepository } from "./db/extension-token-repository";
@@ -77,11 +96,20 @@ function composeStores() {
 
   // With no database nobody can sign in, so the memory stores are only reached by browser flows.
   if (DATABASE_URL === undefined || E2E_FAKES !== undefined) {
+    const captures = createMemoryCaptureRepository();
+    const analyses = createMemoryAnalysisRepository();
+    const settings = createMemoryUserSettings();
+    const extensionTokens = createMemoryExtensionTokenRepository();
+
     return {
-      captures: createMemoryCaptureRepository(),
-      analyses: createMemoryAnalysisRepository(),
-      settings: createMemoryUserSettings(),
-      extensionTokens: createMemoryExtensionTokenRepository(),
+      captures,
+      analyses,
+      settings,
+      extensionTokens,
+      accounts: createMemoryAccountRepository([captures, analyses, settings, extensionTokens]),
+      bufferCache: createMemoryBufferCache(),
+      bufferQuota: createMemoryQuotaStore(),
+      bufferPreferences: createMemoryBufferPreferences(),
     };
   }
 
@@ -92,7 +120,37 @@ function composeStores() {
     analyses: createAnalysisRepository({ db }),
     settings: createUserSettingsRepository({ db }),
     extensionTokens: createExtensionTokenRepository({ db }),
+    bufferCache: createBufferCacheRepository({ db }),
+    bufferQuota: createBufferQuotaRepository({ db }),
+    bufferPreferences: createBufferPreferencesRepository({ db }),
+    accounts: createAccountRepository({ db }),
   };
+}
+
+/** Every Buffer call comes through here: cache and quota first, then the one gateway. */
+function composeBuffer(
+  logger: Logger,
+  oauth: OAuthContext | null,
+  stores: ReturnType<typeof composeStores>,
+) {
+  const isFake = getEnv().E2E_FAKES !== undefined;
+  // Without OAuth nobody can be signed in, so this is only reached by mistake.
+  const auth = isFake
+    ? fakeTokenAuth
+    : (oauth?.auth ?? {
+        getAccessToken: () => Promise.reject(new AppError("RECONNECT_REQUIRED")),
+      });
+
+  const buffer = createBufferService({
+    gateway: isFake ? fakeBufferGateway : createBufferGateway({ clock, logger }),
+    auth,
+    cache: stores.bufferCache,
+    quota: stores.bufferQuota,
+    clock,
+    logger,
+  });
+
+  return createChannelSettingsService({ buffer, preferences: stores.bufferPreferences });
 }
 
 function composeLlm(logger: Logger): LlmGateway {
@@ -109,14 +167,16 @@ function composeLlm(logger: Logger): LlmGateway {
   return createAnthropicGateway({ parse: (request) => client.messages.parse(request), logger });
 }
 
-function composeProductServices(logger: Logger) {
-  const { captures, analyses, settings, extensionTokens } = composeStores();
+function composeProductServices(logger: Logger, oauth: OAuthContext | null) {
+  const stores = composeStores();
+  const { captures, analyses, settings, accounts, extensionTokens } = stores;
   const linkReader =
     getEnv().E2E_FAKES === undefined
       ? createLinkReader({ get: createSafeGet(), logger })
       : fakeLinkReader;
 
   return {
+    account: createAccountService({ accounts }),
     capture: createCaptureService({ captures, linkReader }),
     extensionTokens: createExtensionTokenService({
       tokens: extensionTokens,
@@ -130,6 +190,7 @@ function composeProductServices(logger: Logger) {
       settings,
       clock,
     }),
+    channels: composeBuffer(logger, oauth, stores),
   };
 }
 
@@ -140,10 +201,12 @@ export function getComposition(): Composition {
   if (cached === undefined) {
     const logger = createLogger({ level: getEnv().LOG_LEVEL });
 
+    const oauth = composeOAuth(logger);
+
     cached = {
       logger,
-      services: { ping: createPingService({ clock }), ...composeProductServices(logger) },
-      oauth: composeOAuth(logger),
+      services: { ping: createPingService({ clock }), ...composeProductServices(logger, oauth) },
+      oauth,
     };
   }
 
