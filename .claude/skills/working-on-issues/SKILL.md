@@ -1,6 +1,6 @@
 ---
 name: working-on-issues
-description: The loop from GitHub issue to PR, flow test first. Use when asked to work on an issue, implement a feature, or fix something with an issue.
+description: The loop from GitHub issue to PR, flow test first, and how to write an issue. Use when asked to work on, write or update an issue, implement a feature, or fix something with an issue.
 ---
 
 # Working on an issue
@@ -13,3 +13,15 @@ description: The loop from GitHub issue to PR, flow test first. Use when asked t
 6. **Hand off.** Update `docs/architecture.md` if a layer, table or external service changed. Open a PR with `.github/pull_request_template.md`, conventional commits and `Closes #N`.
 
 The owner merges. Stay inside the issue's scope, and open a new issue for anything extra you find.
+
+# Writing an issue
+
+An agent with no memory of this conversation must be able to finish the work from the issue alone, so use `.github/ISSUE_TEMPLATE/task.md`.
+
+- **Inline the facts.** Copy in the rules, API shapes, limits and exact copy the work needs, and name the doc they came from. A bare pointer like "per §7" sends the agent hunting.
+- **Cite real paths.** Check that each file you name exists, and write `After #N:` for what doesn't exist yet.
+- **Separate decided from suggested.** Mark names as suggestions, and mark anything unconfirmed along with how to confirm it.
+- **List the tests.** Done when each acceptance point is a test or a named manual check.
+- **Name the blockers:** the issues it depends on, the date and why, and any real Buffer, Claude or paid call that needs the owner's OK.
+
+Secrets stay out, since the repo is public.
