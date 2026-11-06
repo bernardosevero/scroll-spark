@@ -88,6 +88,10 @@ export function analysisFailureMessage(code: string | null) {
       return "We couldn't analyze this one. Your capture is safe in your inbox.";
     case "ANALYSIS_LIMIT_REACHED":
       return "That's today's limit reached. Your capture is safe, so come back tomorrow.";
+    case "BUFFER_RATE_LIMITED":
+      return "Buffer is busy, so we couldn't check your channels. Your capture is safe, so try again in a few minutes.";
+    case "RECONNECT_REQUIRED":
+      return "Buffer needs you to connect again before we can check your channels. Your capture is safe.";
     default:
       return "That didn't work this time. Your capture is safe, so you can try again.";
   }
