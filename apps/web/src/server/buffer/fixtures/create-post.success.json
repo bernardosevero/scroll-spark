@@ -1,0 +1,16 @@
+{
+  "data": {
+    "createPost": {
+      "__typename": "PostActionSuccess",
+      "post": {
+        "id": "post_example_2",
+        "channelId": "ch_example_1",
+        "text": "A SECRET-POST-TEXT draft.",
+        "status": "draft",
+        "dueAt": null,
+        "sentAt": null,
+        "ideaId": "idea_example_2"
+      }
+    }
+  }
+}

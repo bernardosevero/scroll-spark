@@ -1,0 +1,28 @@
+{
+  "data": {
+    "channels": [
+      {
+        "id": "ch_example_1",
+        "service": "linkedin",
+        "name": "example-studio",
+        "displayName": "Example Studio",
+        "descriptor": "Company page",
+        "avatar": "https://example.org/avatar.png",
+        "timezone": "America/New_York",
+        "isLocked": false,
+        "isDisconnected": false
+      },
+      {
+        "id": "ch_example_2",
+        "service": "instagram",
+        "name": "examplestudio",
+        "displayName": null,
+        "descriptor": null,
+        "avatar": null,
+        "timezone": "America/New_York",
+        "isLocked": true,
+        "isDisconnected": false
+      }
+    ]
+  }
+}

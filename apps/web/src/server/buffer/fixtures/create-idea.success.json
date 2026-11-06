@@ -1,0 +1,9 @@
+{
+  "data": {
+    "createIdea": {
+      "__typename": "Idea",
+      "id": "idea_example_2",
+      "content": { "title": "An example idea", "text": "What the idea says." }
+    }
+  }
+}

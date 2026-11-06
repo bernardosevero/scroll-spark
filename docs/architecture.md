@@ -30,15 +30,39 @@ flowchart TB
   comp -- builds services with --> adapters
   comp --> core
   adapters -. implements interfaces .-> core
-  adapters --> buffer[Buffer GraphQL API]:::planned
+  adapters -- one gateway, cache and quota first --> buffer[Buffer GraphQL API]
   adapters --> claude[Claude API]
   adapters --> db[(Neon Postgres)]
   adapters -- link reader, SSRF checked --> web[YouTube oEmbed and public pages]
-
-  classDef planned stroke-dasharray: 6 4
 ```
 
-**Tables so far:** `users`, `buffer_grants`, `captures`, `analyses`.
+**Tables so far:** `users` (also holds the chosen Buffer organization and default channels), `buffer_grants`, `captures`, `analyses`, `buffer_cache`, `buffer_quota`.
+
+## Every Buffer call
+
+`api.buffer.com` is reached from one place, `server/buffer/buffer-gateway.ts`. The shared app-client quota is the thing being protected, so `core/src/buffer/buffer.service.ts` decides between cache and network before the gateway is used.
+
+```mermaid
+flowchart TB
+  call[Read or write from a service] --> kind{Read or write?}
+  kind -- read --> fresh{Fresh in buffer_cache?}
+  fresh -- yes --> done[Return the cached answer]
+  fresh -- no --> busy{Any window at 80% of its budget?}
+  busy -- yes, stale copy exists --> done
+  busy -- yes, nothing cached --> limited[BUFFER_RATE_LIMITED]
+  busy -- no --> token[auth.getAccessToken]
+  kind -- write --> token
+  token -- RECONNECT_REQUIRED --> stop[Pass through, no Buffer call]
+  token --> gateway[One request, no retry]
+  gateway --> quota[Save RateLimit headers in buffer_quota]
+  quota --> after{Read or write?}
+  after -- read --> store[Save in buffer_cache]
+  after -- write --> clear[Clear the matching cache keys]
+  gateway -- 429 --> limited
+  gateway -- HTTP 200 with a typed error --> failed[AppError]
+```
+
+Cache lifetimes: account and channels 1 hour, ideas 15 minutes, posts 24 hours. The budget per window is the lower of the header quota and the handbook's (100 per 15 minutes, 250 per day, 3,000 per 30 days). Windows are matched by their length in seconds. Writes are never gated by the 80% rule and never retried.
 
 ## Deleting a user's data
 
