@@ -1,0 +1,39 @@
+{
+  "name": "@scroll-spark/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "next typegen && tsc",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
+    "@scroll-spark/api": "workspace:*",
+    "@scroll-spark/core": "workspace:*",
+    "@scroll-spark/ui": "workspace:*",
+    "@tanstack/react-query": "^5.100.0",
+    "@trpc/server": "^11.20.0",
+    "drizzle-orm": "^0.45.0",
+    "next": "^16.4.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "zod": "^4.6.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.0",
+    "@tailwindcss/postcss": "^4.3.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "drizzle-kit": "^0.31.0",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.0"
+  }
+}

@@ -1,0 +1,18 @@
+node_modules
+.next
+.output
+.wxt
+.turbo
+coverage
+playwright-report
+test-results
+*.tsbuildinfo
+next-env.d.ts
+
+# Secrets stay out of git. Only .env.example is committed.
+.env
+.env.*
+!.env.example
+
+.vercel
+.DS_Store

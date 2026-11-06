@@ -1,0 +1,47 @@
+{
+  "name": "scroll-spark",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Capture ideas while you scroll and turn them into posts. Built on the Buffer API.",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@12.6.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "typecheck": "turbo typecheck",
+    "test": "turbo test",
+    "e2e": "pnpm --filter @scroll-spark/web e2e",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "knip": "knip",
+    "verify": "pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build && pnpm knip",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,mjs}": [
+      "eslint --fix --max-warnings 0",
+      "prettier --write"
+    ],
+    "*.{json,md,css,yml,yaml}": "prettier --write"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.0",
+    "eslint": "^9.39.0",
+    "eslint-config-next": "^16.4.0",
+    "globals": "^17.0.0",
+    "husky": "^9.1.7",
+    "knip": "^6.40.0",
+    "lint-staged": "^17.0.0",
+    "prettier": "^3.9.0",
+    "prettier-plugin-tailwindcss": "^0.8.0",
+    "turbo": "^2.11.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.70.0"
+  }
+}
