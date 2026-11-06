@@ -2,7 +2,7 @@
 
 Capture a post you like while scrolling, see how it fits each of your channels, and turn it into your next post. Built on the Buffer API for the Buffer Commit contest.
 
-**Status:** in progress. Buffer sign-in is built, and it needs real credentials to try.
+**Status:** every feature is built and tested against fakes. Nothing has run against real Buffer or Claude yet, or in real Chrome. [docs/deploy.md](docs/deploy.md) is the way to production.
 
 ## Setup
 
@@ -36,6 +36,8 @@ To open the extension in Chrome, go to `chrome://extensions`, turn on Developer 
 | `BUFFER_CLIENT_ID`, `BUFFER_CLIENT_SECRET` | Production, and to sign in locally | Your Buffer app client. Use the dev client locally.       |
 | `DATABASE_URL`                             | Production, and to sign in locally | Neon dev branch connection                                |
 | `SECRET_KEY`                               | Production, and to sign in locally | 32 random bytes in base64, from `openssl rand -base64 32` |
+| `ANTHROPIC_API_KEY`                        | Production                         | Claude, for analysis and drafts. Real calls cost money.   |
+| `HEALTH_SECRET`, `HEALTH_BUFFER_USER_ID`   | After launch                       | The daily health check. See docs/deploy.md.               |
 | `EXTENSION_ORIGIN`                         | Production                         | The one extension allowed to call the API                 |
 | `LOG_LEVEL`                                | No                                 | `info`, `warn` or `error`                                 |
 
@@ -71,6 +73,10 @@ flowchart LR
   server --> neon[(Neon Postgres)]
 ```
 
+## After submitting
+
+**Deploy freeze:** once the contest entry is sent, deploy only to fix something broken, so the app keeps matching the demo video.
+
 ## Working here
 
 Start with [AGENTS.md](AGENTS.md). Every change begins with a failing flow test.
@@ -82,6 +88,7 @@ Start with [AGENTS.md](AGENTS.md). Every change begins with a failing flow test.
 | [docs/design-system.md](docs/design-system.md)           | Riso Print: colour, type, motion, voice |
 | [docs/conventions.md](docs/conventions.md)               | Code patterns                           |
 | [docs/testing.md](docs/testing.md)                       | Test strategy                           |
+| [docs/deploy.md](docs/deploy.md)                         | Deploying and the daily health check    |
 | [docs/adr/](docs/adr/)                                   | Technical decisions and why             |
 
 ## License

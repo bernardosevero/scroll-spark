@@ -286,6 +286,10 @@ flowchart LR
 
 A queued post may publish for real, so `post.create` is sent once and never retried. Each expected failure shows its own message and leaves the user's text on screen.
 
+## Staying live
+
+`/api/health` is public and only checks the database. `/api/health/deep` needs a secret, because it also makes one tiny Claude call and one Buffer call. `.github/workflows/daily-health.yml` calls it once a day, and a failed run is what emails the owner. Steps are in [deploy.md](deploy.md).
+
 ## Where each decision is recorded
 
 - Product: [PROJECT_DEFINITION.md](PROJECT_DEFINITION.md)

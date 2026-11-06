@@ -42,8 +42,9 @@ jobs:
 
   e2e:
     name: Flows (Playwright)
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    # Pinned, since ubuntu-latest moved to a release whose packages install slowly.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -52,7 +53,15 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @scroll-spark/web exec playwright install --with-deps chromium
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+      - run: pnpm --filter @scroll-spark/web exec playwright install chromium
+      # System packages come from apt, whose mirrors have stalled. A killed install leaves apt
+      # holding its lock, so a stuck run fails here rather than retrying.
+      - run: pnpm --filter @scroll-spark/web exec playwright install-deps chromium
+        timeout-minutes: 6
       - run: pnpm e2e
       - uses: actions/upload-artifact@v4
         if: failure()

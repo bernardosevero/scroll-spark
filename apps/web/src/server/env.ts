@@ -26,6 +26,10 @@ const envSchema = z
     BUFFER_CLIENT_ID: optional(z.string()),
     BUFFER_CLIENT_SECRET: optional(z.string()),
     DATABASE_URL: optional(z.url()),
+    /** Guards the deep health check. Until it's set, that route doesn't exist. */
+    HEALTH_SECRET: optional(z.string().min(32)),
+    /** The owner's user ID, whose Buffer grant the daily check uses for its one Buffer call. */
+    HEALTH_BUFFER_USER_ID: optional(z.uuid()),
     EXTENSION_ORIGIN: optional(z.string().startsWith("chrome-extension://")),
     SECRET_KEY: optional(secretKey),
     /** Swaps real services for fakes in browser flows. Refused on any Vercel deployment. */
