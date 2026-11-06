@@ -1,0 +1,20 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "workspaces": {
+    ".": {},
+    "apps/web": {
+      "entry": ["e2e/**/*.spec.ts"],
+      "project": ["src/**/*.{ts,tsx}", "e2e/**/*.ts"]
+    },
+    "apps/extension": {
+      "entry": ["src/entrypoints/**/*.{ts,tsx}"],
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "packages/*": {
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "tooling/*": {
+      "project": ["*.ts"]
+    }
+  }
+}

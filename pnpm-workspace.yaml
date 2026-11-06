@@ -1,0 +1,12 @@
+packages:
+  - apps/*
+  - packages/*
+  - tooling/*
+
+# Refuse releases younger than 7 days (minutes). Add a named exclusion when a fix can't wait.
+minimumReleaseAge: 10080
+
+# pnpm blocks dependency install scripts unless named here.
+allowBuilds:
+  esbuild: true
+  unrs-resolver: false

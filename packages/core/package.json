@@ -1,0 +1,24 @@
+{
+  "name": "@scroll-spark/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./errors/app-error": "./src/errors/app-error.ts",
+    "./logging/logger": "./src/logging/logger.ts",
+    "./ping/ping.service": "./src/ping/ping.service.ts",
+    "./ping/schemas": "./src/ping/schemas.ts",
+    "./time/clock": "./src/time/clock.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.6.0"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.0"
+  }
+}

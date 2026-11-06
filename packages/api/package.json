@@ -1,0 +1,28 @@
+{
+  "name": "@scroll-spark/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./client": "./src/client.ts",
+    "./react": "./src/react.ts",
+    "./router": "./src/router.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@scroll-spark/core": "workspace:*",
+    "@tanstack/react-query": "^5.100.0",
+    "@trpc/client": "^11.20.0",
+    "@trpc/server": "^11.20.0",
+    "@trpc/tanstack-react-query": "^11.20.0",
+    "react": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "typescript": "~6.0.3",
+    "vitest": "^5.0.0"
+  }
+}

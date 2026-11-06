@@ -1,0 +1,44 @@
+@import "tailwindcss";
+@import "@fontsource-variable/bricolage-grotesque/index.css";
+@import "@fontsource-variable/dm-sans/index.css";
+
+/* Scan the shared components, so hosts only need to import this file. */
+@source "./";
+
+/*
+ * Riso Print, the chosen direction. Colours are sampled from the owner's Pantone swatches, and
+ * `spark` is magenta 73-7 C darkened just enough to pass 4.5:1 with white text.
+ * Roles, contrast rules and motion: docs/design-system.md.
+ */
+@theme {
+  --color-cream: #fceeaf;
+  --color-stone: #d8d7ca;
+  --color-paper: #ffffff;
+  --color-navy: #2c3a67;
+  --color-blue: #2d4c8f;
+  --color-spark: #c4467b;
+  --color-danger: #c43d3a;
+
+  --font-display: "Bricolage Grotesque Variable", system-ui, sans-serif;
+  --font-sans: "DM Sans Variable", system-ui, sans-serif;
+
+  --radius-print: 6px;
+  --shadow-offset-spark: 8px 8px 0 var(--color-spark);
+  --shadow-offset-navy: 4px 4px 0 var(--color-navy);
+}
+
+@layer base {
+  body {
+    background-color: var(--color-cream);
+    /* Halftone dots, the printed texture of the direction. */
+    background-image: radial-gradient(rgb(196 70 123 / 15%) 1.3px, transparent 1.5px);
+    background-size: 9px 9px;
+    color: var(--color-navy);
+    font-family: var(--font-sans);
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--color-blue);
+    outline-offset: 2px;
+  }
+}
