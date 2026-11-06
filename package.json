@@ -11,9 +11,10 @@
   },
   "scripts": {
     "dev": "turbo dev",
+    "dev:https": "pnpm --filter @scroll-spark/web dev:https",
     "build": "turbo build",
     "typecheck": "turbo typecheck",
-    "test": "turbo test",
+    "test": "turbo test --concurrency=1",
     "e2e": "pnpm --filter @scroll-spark/web e2e",
     "lint": "eslint . --max-warnings 0",
     "lint:fix": "eslint . --fix",

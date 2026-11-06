@@ -31,6 +31,10 @@ There's no coverage target. The risky logic gets tested properly, and the rest s
 2. `pnpm e2e`
 3. For UI changes, look at the result in a browser, at phone and desktop width, and with reduced motion for animated work.
 
+## Real Postgres
+
+The refresh-lock test runs only when `TEST_DATABASE_URL` is set, as it is in CI. It resets that database, so it refuses any database whose name lacks `test`.
+
 ## Real services
 
 Ask the owner before any test run or script that calls real Buffer or Claude. Use the dev app client, so the judging client's quota stays untouched.

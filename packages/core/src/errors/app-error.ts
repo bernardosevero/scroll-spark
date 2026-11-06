@@ -1,6 +1,7 @@
 /** Every failure the product expects. Each code has one user message, in the UI's message table. */
 export const APP_ERROR_CODES = [
   "INVALID_INPUT",
+  "OAUTH_FAILED",
   "RECONNECT_REQUIRED",
   "BUFFER_RATE_LIMITED",
   "BUFFER_LIMIT_REACHED",

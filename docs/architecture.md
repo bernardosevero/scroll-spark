@@ -101,7 +101,7 @@ sequenceDiagram
   else Another request holds the lock
     Web->>DB: Wait, then read the new token
   end
-  opt Refresh failed or result is unclear
+  opt Refresh failed, its result is unclear, or an earlier lock expired unfinished
     Web->>Browser: Show Reconnect Buffer
   end
 ```

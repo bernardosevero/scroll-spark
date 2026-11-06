@@ -14,6 +14,22 @@ jobs:
     name: Lint, format, types, tests, build, knip
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: scroll_spark_test
+        ports:
+          - 5544:5432
+        options: >-
+          --health-cmd "pg_isready -U test"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgres://test:test@localhost:5544/scroll_spark_test
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

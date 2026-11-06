@@ -135,12 +135,12 @@ Chrome extension (MV3)                Website (public URL)
 **Refresh safety:** refresh tokens are single-use, and reusing one revokes the whole grant. Each user's token row gets a short lock, so only one request refreshes and the others wait for the new token:
 
 ```sql
-UPDATE tokens SET refreshing_until = now() + interval '30 seconds'
-WHERE user_id = $1 AND (refreshing_until IS NULL OR refreshing_until < now())
-RETURNING *;
+UPDATE buffer_grants SET refreshing_until = now() + interval '30 seconds'
+WHERE user_id = $1 AND refreshing_until IS NULL AND needs_reconnect = false
+RETURNING user_id;
 ```
 
-Save the new token immediately and never retry a refresh automatically. If a refresh fails or its result is unclear, show a "Reconnect Buffer" button.
+Save the new token immediately and never retry a refresh automatically. If a refresh fails or its result is unclear, show a "Reconnect Buffer" button. An expired lock counts as unclear: that request may have spent the token before crashing, and reusing a spent token revokes the grant, so the user reconnects rather than risking it.
 
 **Extension:**
 
@@ -329,7 +329,7 @@ Recorded Thursday on the real LinkedIn account. The fit-per-channel moment gets 
 
 **Marketing video (optional):** the [motion-graphics skills](https://github.com/Barty-Bart/motion-graphics) can make a landing page loop or teaser. The 2-minute demo stays a real screen recording, because the handbook requires the real product.
 
-**Repo:** `bernardosevero/scroll-spark`, private for now. It must be public before submission if the GitHub zip is the extension's fallback.
+**Repo:** `bernardosevero/scroll-spark`, public.
 
 ## 18. Submission checklist
 
