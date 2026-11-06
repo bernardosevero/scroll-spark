@@ -1,4 +1,8 @@
+import Anthropic from "@anthropic-ai/sdk";
+
 import type { ApiContext } from "@scroll-spark/api/router";
+import { createAnalysisService } from "@scroll-spark/core/analysis/analysis.service";
+import type { LlmGateway } from "@scroll-spark/core/analysis/analysis.service";
 import { createAuthService } from "@scroll-spark/core/auth/auth.service";
 import { createCaptureService } from "@scroll-spark/core/capture/capture.service";
 import type { Logger } from "@scroll-spark/core/logging/logger";
@@ -7,14 +11,22 @@ import { createPingService } from "@scroll-spark/core/ping/ping.service";
 import { createBufferAuthGateway } from "./auth/buffer-auth-gateway";
 import type { OAuthContext } from "./auth/oauth-handlers";
 import { pkceCrypto } from "./auth/pkce";
-import { createMemoryCaptureRepository, fakeLinkReader } from "./capture/fakes";
+import {
+  createMemoryAnalysisRepository,
+  createMemoryCaptureRepository,
+  createMemoryUserSettings,
+  fakeLinkReader,
+  fakeLlm,
+} from "./capture/fakes";
 import { createLinkReader } from "./capture/link-reader";
 import { createSafeGet } from "./capture/safe-get";
 import { createSealer } from "./crypto/seal";
+import { createAnalysisRepository, createUserSettingsRepository } from "./db/analysis-repository";
 import { createCaptureRepository } from "./db/capture-repository";
 import { createDb } from "./db/client";
 import { createGrantRepository } from "./db/grant-repository";
 import { getEnv } from "./env";
+import { createAnthropicGateway } from "./llm/anthropic-gateway";
 import { createLogger } from "./logger";
 
 interface Composition {
@@ -56,23 +68,58 @@ function composeOAuth(logger: Logger): OAuthContext | null {
   };
 }
 
-function composeCapture(logger: Logger) {
+function composeStores() {
   const { DATABASE_URL, E2E_FAKES } = getEnv();
 
-  if (E2E_FAKES !== undefined) {
-    return createCaptureService({
+  // With no database nobody can sign in, so the memory stores are only reached by browser flows.
+  if (DATABASE_URL === undefined || E2E_FAKES !== undefined) {
+    return {
       captures: createMemoryCaptureRepository(),
-      linkReader: fakeLinkReader,
-    });
+      analyses: createMemoryAnalysisRepository(),
+      settings: createMemoryUserSettings(),
+    };
   }
 
-  return createCaptureService({
-    // With no database nobody can sign in, so this store is never reached.
-    captures: DATABASE_URL
-      ? createCaptureRepository({ db: createDb(DATABASE_URL) })
-      : createMemoryCaptureRepository(),
-    linkReader: createLinkReader({ get: createSafeGet(), logger }),
-  });
+  const db = createDb(DATABASE_URL);
+
+  return {
+    captures: createCaptureRepository({ db }),
+    analyses: createAnalysisRepository({ db }),
+    settings: createUserSettingsRepository({ db }),
+  };
+}
+
+function composeLlm(logger: Logger): LlmGateway {
+  const { ANTHROPIC_API_KEY, E2E_FAKES } = getEnv();
+
+  if (E2E_FAKES !== undefined) {
+    return fakeLlm;
+  }
+
+  // A key may be missing in development, and then each analysis fails with a clear message.
+  // No retries, since each one costs money, and a timeout under the route's own limit.
+  const client = new Anthropic({ apiKey: ANTHROPIC_API_KEY ?? "", maxRetries: 0, timeout: 50_000 });
+
+  return createAnthropicGateway({ parse: (request) => client.messages.parse(request), logger });
+}
+
+function composeProductServices(logger: Logger) {
+  const { captures, analyses, settings } = composeStores();
+  const linkReader =
+    getEnv().E2E_FAKES === undefined
+      ? createLinkReader({ get: createSafeGet(), logger })
+      : fakeLinkReader;
+
+  return {
+    capture: createCaptureService({ captures, linkReader }),
+    analysis: createAnalysisService({
+      llm: composeLlm(logger),
+      analyses,
+      captures,
+      settings,
+      clock,
+    }),
+  };
 }
 
 let cached: Composition | undefined;
@@ -84,7 +131,7 @@ export function getComposition(): Composition {
 
     cached = {
       logger,
-      services: { ping: createPingService({ clock }), capture: composeCapture(logger) },
+      services: { ping: createPingService({ clock }), ...composeProductServices(logger) },
       oauth: composeOAuth(logger),
     };
   }

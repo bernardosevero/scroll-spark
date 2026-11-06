@@ -1,6 +1,7 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 
@@ -27,21 +28,27 @@ const isSingleLink = (text: string) => /^https?:\/\/\S+$/i.test(text.trim());
 
 export function CaptureForm() {
   const trpc = useTRPC();
-  const queryClient = useQueryClient();
+  const router = useRouter();
   const field = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState("");
   const [source, setSource] = useState<Source | null>(null);
   const [cantRead, setCantRead] = useState(false);
 
-  const refreshInbox = () => queryClient.invalidateQueries(trpc.capture.inbox.queryFilter());
-
-  const create = useMutation(trpc.capture.create.mutationOptions({ onSuccess: refreshInbox }));
+  const create = useMutation(
+    trpc.capture.create.mutationOptions({
+      onSuccess({ id }) {
+        // `spark=1` asks the next page to analyze it, so opening an old capture never spends.
+        router.push(`/inbox/${id}?spark=1`);
+      },
+    }),
+  );
   const readLink = useMutation(trpc.capture.readLink.mutationOptions());
 
   const length = Array.from(text).length;
   const isOverLimit = length > MAX_CAPTURE_LENGTH;
   const isBlank = text.trim() === "";
-  const isBusy = create.isPending || readLink.isPending;
+  // Stays busy after saving, until the next page arrives, so a second click can't save twice.
+  const isBusy = create.isPending || create.isSuccess || readLink.isPending;
   const failure = create.error ?? readLink.error;
 
   function askForText(nextSource: Source | null) {
@@ -74,21 +81,12 @@ export function CaptureForm() {
   function save() {
     readLink.reset();
 
-    create.mutate(
-      {
-        text,
-        sourceUrl: source?.url ?? null,
-        platform: source?.platform ?? "pasted",
-        sourceName: source?.name ?? null,
-      },
-      {
-        onSuccess() {
-          setText("");
-          setSource(null);
-          setCantRead(false);
-        },
-      },
-    );
+    create.mutate({
+      text,
+      sourceUrl: source?.url ?? null,
+      platform: source?.platform ?? "pasted",
+      sourceName: source?.name ?? null,
+    });
   }
 
   function submit(event: FormEvent) {
@@ -163,7 +161,7 @@ export function CaptureForm() {
             ))}
 
           <Button type="submit" disabled={isBlank || isBusy}>
-            {isSingleLink(text) ? "Read this link" : "Save to inbox"}
+            {isSingleLink(text) ? "Read this link" : "Find the spark"}
           </Button>
 
           <div className="flex flex-col gap-2 pt-1">

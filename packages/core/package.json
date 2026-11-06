@@ -4,6 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./analysis/analysis.service": "./src/analysis/analysis.service.ts",
+    "./analysis/schemas": "./src/analysis/schemas.ts",
     "./auth/auth.service": "./src/auth/auth.service.ts",
     "./auth/schemas": "./src/auth/schemas.ts",
     "./capture/capture.service": "./src/capture/capture.service.ts",

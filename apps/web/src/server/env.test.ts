@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { parseEnv } from "./env";
 
 const COMPLETE = {
+  ANTHROPIC_API_KEY: "key",
   APP_URL: "https://app.example",
   BUFFER_CLIENT_ID: "client",
   BUFFER_CLIENT_SECRET: "secret",

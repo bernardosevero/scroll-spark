@@ -1,5 +1,6 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 
+import type { CaptureLookup } from "@scroll-spark/core/analysis/analysis.service";
 import type { CaptureRepository } from "@scroll-spark/core/capture/capture.service";
 import type { Capture } from "@scroll-spark/core/capture/schemas";
 
@@ -17,8 +18,21 @@ function toCapture(row: typeof captures.$inferSelect): Capture {
   };
 }
 
-export function createCaptureRepository({ db }: { db: Database }): CaptureRepository {
+export function createCaptureRepository({
+  db,
+}: {
+  db: Database;
+}): CaptureRepository & CaptureLookup {
   return {
+    async findOwned(userId, captureId) {
+      const [row] = await db
+        .select()
+        .from(captures)
+        .where(and(eq(captures.id, captureId), eq(captures.userId, userId)));
+
+      return row === undefined ? null : toCapture(row);
+    },
+
     async insert(capture) {
       const [row] = await db.insert(captures).values(capture).returning();
 

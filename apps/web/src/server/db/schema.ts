@@ -1,4 +1,4 @@
-import { boolean, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, index, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import type { CapturePlatform } from "@scroll-spark/core/capture/schemas";
 
@@ -6,6 +6,8 @@ export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   /** Buffer's account ID, the identity behind "Connect your Buffer account". */
   bufferAccountId: text("buffer_account_id").notNull().unique(),
+  /** Two-letter country for Google Trends links. Null means the default, the US. */
+  trendsGeo: text("trends_geo"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -43,4 +45,25 @@ export const captures = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("captures_user_newest").on(table.userId, table.createdAt.desc())],
+);
+
+/** What the AI returned for a capture. One per capture, so a second look spends nothing. */
+export const analyses = pgTable(
+  "analyses",
+  {
+    captureId: uuid("capture_id")
+      .primaryKey()
+      .references(() => captures.id, { onDelete: "cascade" }),
+    /** Kept here too, so counting today's analyses for the daily limit needs no join. */
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    summary: text("summary").notNull(),
+    topic: text("topic").notNull(),
+    angle: text("angle").notNull(),
+    trendPhrases: jsonb("trend_phrases").$type<string[]>().notNull(),
+    model: text("model").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("analyses_user_recent").on(table.userId, table.createdAt)],
 );

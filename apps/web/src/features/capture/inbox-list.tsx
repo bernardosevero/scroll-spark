@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { appCodeOf } from "@scroll-spark/api/client";
 import type { Capture } from "@scroll-spark/api/client";
 import { useTRPC } from "@scroll-spark/api/react";
-import { Button } from "@scroll-spark/ui/button";
+import { Button, ButtonLink } from "@scroll-spark/ui/button";
 import { Card } from "@scroll-spark/ui/card";
 import { Reveal } from "@scroll-spark/ui/reveal";
 
@@ -15,27 +15,36 @@ import { sourceLabel } from "./source";
 const DATE = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
 
 function CaptureItem({ capture }: { capture: Capture }) {
-  const { text, sourceUrl, sourceName, platform, createdAt } = capture;
+  const { id, text, sourceUrl, sourceName, platform, createdAt } = capture;
 
   return (
     <Reveal>
       <article>
-        <Card className="flex flex-col gap-2 p-4.5">
-          <p className="line-clamp-4 wrap-anywhere whitespace-pre-line">{text}</p>
-          <p className="flex flex-wrap items-center gap-x-3 text-sm">
-            <span>{DATE.format(new Date(createdAt))}</span>
-            {platform === "example" && <span className="font-medium">Example</span>}
-            {sourceUrl !== null && (
-              <a
-                href={sourceUrl}
-                target="_blank"
-                rel="noopener noreferrer nofollow"
-                className="inline-flex min-h-11 items-center font-medium wrap-anywhere text-blue underline"
-              >
-                {sourceLabel({ url: sourceUrl, name: sourceName })}
-              </a>
-            )}
-          </p>
+        <Card className="flex flex-wrap items-center justify-between gap-3.5 p-4.5">
+          <div className="flex min-w-0 flex-[1_1_280px] flex-col gap-2">
+            <p className="line-clamp-4 wrap-anywhere whitespace-pre-line">{text}</p>
+            <p className="flex flex-wrap items-center gap-x-3 text-sm">
+              <span>{DATE.format(new Date(createdAt))}</span>
+              {platform === "example" && <span className="font-medium">Example</span>}
+              {sourceUrl !== null && (
+                <a
+                  href={sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="inline-flex min-h-11 items-center font-medium wrap-anywhere text-blue underline"
+                >
+                  {sourceLabel({ url: sourceUrl, name: sourceName })}
+                </a>
+              )}
+            </p>
+          </div>
+          <ButtonLink
+            href={`/inbox/${id}`}
+            variant="plain"
+            aria-label={`Open ${text.slice(0, 40)}`}
+          >
+            Open
+          </ButtonLink>
         </Card>
       </article>
     </Reveal>
