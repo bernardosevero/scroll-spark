@@ -5,9 +5,12 @@
   "type": "module",
   "exports": {
     "./button": "./src/button.tsx",
+    "./analysis-card": "./src/analysis-card.tsx",
     "./card": "./src/card.tsx",
     "./chip-button": "./src/chip-button.tsx",
     "./chip-link": "./src/chip-link.tsx",
+    "./draft-editor-view": "./src/draft-editor-view.tsx",
+    "./fit-check": "./src/fit-check.tsx",
     "./fit-row": "./src/fit-row.tsx",
     "./ping-card": "./src/ping-card.tsx",
     "./reconnect-notice": "./src/reconnect-notice.tsx",
@@ -16,6 +19,7 @@
     "./spark-burst": "./src/spark-burst.tsx",
     "./spark-mark": "./src/spark-mark.tsx",
     "./text-area-field": "./src/text-area-field.tsx",
+    "./trends-links": "./src/trends-links.tsx",
     "./tokens.css": "./src/tokens.css"
   },
   "scripts": {
