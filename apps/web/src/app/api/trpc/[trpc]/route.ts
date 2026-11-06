@@ -7,6 +7,9 @@ import { getComposition } from "@/server/composition";
 import { allowedOrigin, corsHeaders } from "@/server/cors";
 import { getEnv } from "@/server/env";
 
+// Analysis waits on Claude. The adapter gives up first, so the user sees a real message.
+export const maxDuration = 60;
+
 function originHeaders(request: Request) {
   const { EXTENSION_ORIGIN, NODE_ENV } = getEnv();
 

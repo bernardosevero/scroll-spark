@@ -1,10 +1,18 @@
 import { randomUUID } from "node:crypto";
 
+import type {
+  AnalysisRepository,
+  CaptureLookup,
+  LlmGateway,
+  UserSettings,
+} from "@scroll-spark/core/analysis/analysis.service";
+import type { Analysis } from "@scroll-spark/core/analysis/schemas";
 import type { CaptureRepository, LinkReader } from "@scroll-spark/core/capture/capture.service";
 import type { Capture } from "@scroll-spark/core/capture/schemas";
+import { AppError } from "@scroll-spark/core/errors/app-error";
 
 /** Memory only. Used by browser flows, and where no database exists so nobody can sign in. */
-export function createMemoryCaptureRepository(): CaptureRepository {
+export function createMemoryCaptureRepository(): CaptureRepository & CaptureLookup {
   const rows: (Capture & { userId: string })[] = [];
 
   return {
@@ -15,6 +23,40 @@ export function createMemoryCaptureRepository(): CaptureRepository {
     },
     listNewest(userId, limit) {
       return Promise.resolve(rows.filter((row) => row.userId === userId).slice(0, limit));
+    },
+    findOwned(userId, captureId) {
+      const row = rows.find((candidate) => candidate.id === captureId);
+      return Promise.resolve(row?.userId === userId ? row : null);
+    },
+  };
+}
+
+export function createMemoryAnalysisRepository(): AnalysisRepository {
+  const rows = new Map<string, Analysis & { userId: string }>();
+
+  return {
+    find: (captureId) => Promise.resolve(rows.get(captureId) ?? null),
+    countSince(userId, since) {
+      const used = [...rows.values()].filter(
+        (row) => row.userId === userId && new Date(row.createdAt) >= since,
+      );
+      return Promise.resolve(used.length);
+    },
+    save(userId, analysis) {
+      rows.set(analysis.captureId, { ...analysis, userId });
+      return Promise.resolve(analysis);
+    },
+  };
+}
+
+export function createMemoryUserSettings(): UserSettings {
+  const geos = new Map<string, string>();
+
+  return {
+    getTrendsGeo: (userId) => Promise.resolve(geos.get(userId) ?? null),
+    setTrendsGeo(userId, geo) {
+      geos.set(userId, geo);
+      return Promise.resolve();
     },
   };
 }
@@ -33,4 +75,18 @@ export const fakeLinkReader: LinkReader = {
         ? { title: "A short article", description: "Its first line.", sourceName: "A Site" }
         : null,
     ),
+};
+
+/** Answers without spending anything. Text containing "[refuse]" plays a refusal. */
+export const fakeLlm: LlmGateway = {
+  model: "fake-model",
+  analyze: ({ text }) =>
+    text.includes("[refuse]")
+      ? Promise.reject(new AppError("LLM_REFUSED"))
+      : Promise.resolve({
+          summary: "Small fixes can matter more than big features.",
+          topic: "Listening to customers",
+          angle: "The quiet customer who changed what you built",
+          trendPhrases: ["customer feedback", "product market fit"],
+        }),
 };

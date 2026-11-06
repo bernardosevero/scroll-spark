@@ -31,14 +31,14 @@ flowchart TB
   comp --> core
   adapters -. implements interfaces .-> core
   adapters --> buffer[Buffer GraphQL API]:::planned
-  adapters --> claude[Claude API]:::planned
+  adapters --> claude[Claude API]
   adapters --> db[(Neon Postgres)]
   adapters -- link reader, SSRF checked --> web[YouTube oEmbed and public pages]
 
   classDef planned stroke-dasharray: 6 4
 ```
 
-**Tables so far:** `users`, `buffer_grants`, `captures`.
+**Tables so far:** `users`, `buffer_grants`, `captures`, `analyses`.
 
 ## Reading a link safely
 

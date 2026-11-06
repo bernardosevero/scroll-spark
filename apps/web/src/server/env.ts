@@ -8,6 +8,7 @@ const secretKey = z
   .refine((value) => Buffer.from(value, "base64").length === 32, "must be 32 bytes, in base64");
 
 const REQUIRED_IN_PRODUCTION = [
+  "ANTHROPIC_API_KEY",
   "APP_URL",
   "BUFFER_CLIENT_ID",
   "BUFFER_CLIENT_SECRET",
@@ -20,6 +21,7 @@ const envSchema = z
     NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
     VERCEL_ENV: z.string().optional(),
     LOG_LEVEL: z.enum(["info", "warn", "error"]).default("info"),
+    ANTHROPIC_API_KEY: optional(z.string()),
     APP_URL: optional(z.url()),
     BUFFER_CLIENT_ID: optional(z.string()),
     BUFFER_CLIENT_SECRET: optional(z.string()),

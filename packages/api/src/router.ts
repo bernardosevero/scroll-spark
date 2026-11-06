@@ -1,6 +1,12 @@
 import { TRPCError, initTRPC } from "@trpc/server";
 import type { TRPC_ERROR_CODE_KEY } from "@trpc/server";
 
+import type { AnalysisService } from "@scroll-spark/core/analysis/analysis.service";
+import {
+  captureIdInputSchema,
+  capturedAnalysisSchema,
+  setTrendsGeoInputSchema,
+} from "@scroll-spark/core/analysis/schemas";
 import type { CaptureService } from "@scroll-spark/core/capture/capture.service";
 import {
   captureSchema,
@@ -20,6 +26,7 @@ export interface ApiContext {
   services: {
     ping: PingService;
     capture: CaptureService;
+    analysis: AnalysisService;
   };
 }
 
@@ -27,6 +34,9 @@ const TRPC_CODE_BY_APP_CODE: Record<AppErrorCode, TRPC_ERROR_CODE_KEY> = {
   INVALID_INPUT: "BAD_REQUEST",
   OAUTH_FAILED: "BAD_REQUEST",
   NOT_SIGNED_IN: "UNAUTHORIZED",
+  NOT_FOUND: "NOT_FOUND",
+  ANALYSIS_LIMIT_REACHED: "TOO_MANY_REQUESTS",
+  LLM_FAILED: "BAD_GATEWAY",
   RECONNECT_REQUIRED: "UNAUTHORIZED",
   BUFFER_RATE_LIMITED: "TOO_MANY_REQUESTS",
   BUFFER_LIMIT_REACHED: "PRECONDITION_FAILED",
@@ -78,6 +88,20 @@ export const appRouter = trpc.router({
     inbox: signedInProcedure
       .output(inboxSchema)
       .query(({ ctx }) => ctx.services.capture.listInbox(ctx.userId)),
+    get: signedInProcedure
+      .input(captureIdInputSchema)
+      .output(capturedAnalysisSchema)
+      .query(({ ctx, input }) => ctx.services.analysis.get(ctx.userId, input)),
+    analyze: signedInProcedure
+      .input(captureIdInputSchema)
+      .output(capturedAnalysisSchema)
+      .mutation(({ ctx, input }) => ctx.services.analysis.analyze(ctx.userId, input)),
+  }),
+
+  settings: trpc.router({
+    setTrendsGeo: signedInProcedure
+      .input(setTrendsGeoInputSchema)
+      .mutation(({ ctx, input }) => ctx.services.analysis.setTrendsGeo(ctx.userId, input)),
   }),
 });
 

@@ -5,7 +5,14 @@ import { signIn } from "./support/session";
 
 const inbox = (page: Page) => page.getByRole("region", { name: "Your captures" });
 const field = (page: Page) => page.getByLabel("Paste a post or a link");
-const save = (page: Page) => page.getByRole("button", { name: "Save to inbox" });
+const spark = (page: Page) => page.getByRole("button", { name: "Find the spark" });
+
+/** Saving moves on to the capture's page, so come back to see the list. */
+async function saveThenReturn(page: Page) {
+  await spark(page).click();
+  await expect(page).toHaveURL(/\/inbox\/[\w-]+/);
+  await page.goto("/inbox");
+}
 
 test("signed out, the inbox sends you to connect", async ({ page }) => {
   await page.goto("/inbox");
@@ -24,6 +31,8 @@ test.describe("signed in", () => {
     await expect(page.getByText("Nothing here yet.")).toBeVisible();
 
     await page.getByRole("button", { name: "A founder story" }).click();
+    await expect(page).toHaveURL(/\/inbox\/[\w-]+/);
+    await page.goto("/inbox");
 
     await expect(inbox(page).getByRole("article")).toHaveCount(1);
     await expect(inbox(page).getByText("Example", { exact: false })).toBeVisible();
@@ -33,7 +42,7 @@ test.describe("signed in", () => {
   test("pasted text can be corrected, saved, and survives a reload", async ({ page }) => {
     await field(page).fill("Consistancy beats talent when you post every week.");
     await field(page).fill("Consistency beats talent when you post every week.");
-    await save(page).click();
+    await saveThenReturn(page);
 
     await expect(inbox(page).getByText("Consistency beats talent")).toBeVisible();
     await expect(field(page)).toHaveValue("");
@@ -54,7 +63,7 @@ test.describe("signed in", () => {
     await expect(field(page)).toHaveValue("How I plan a month of posts in one afternoon");
     await expect(page.getByText("From Example Channel")).toBeVisible();
 
-    await save(page).click();
+    await saveThenReturn(page);
 
     const source = inbox(page).getByRole("link", { name: "Example Channel" });
     await expect(source).toHaveAttribute("href", url);
@@ -72,7 +81,8 @@ test.describe("signed in", () => {
     await expect(field(page)).toBeFocused();
 
     await field(page).fill("The text I copied from the post.");
-    await save(page).click();
+    await expect(page.getByText("We can't read that page.")).toBeHidden();
+    await saveThenReturn(page);
 
     await expect(inbox(page).getByRole("link", { name: "linkedin.com" })).toHaveAttribute(
       "href",
@@ -85,7 +95,7 @@ test.describe("signed in", () => {
 
     await expect(page.getByText("We keep the first 1,000 characters.")).toBeVisible();
 
-    await save(page).click();
+    await saveThenReturn(page);
 
     const saved = inbox(page).getByRole("article");
     await expect(saved).toHaveCount(1);
@@ -97,7 +107,7 @@ test.describe("signed in", () => {
     await page.route("**/api/trpc/capture.create*", (route) => route.abort());
 
     await field(page).fill("Please keep this.");
-    await save(page).click();
+    await spark(page).click();
 
     await expect(page.getByText("That didn't save.")).toBeVisible();
     await expect(field(page)).toHaveValue("Please keep this.");
@@ -111,7 +121,7 @@ test.describe("signed in", () => {
 
     await context.clearCookies();
     await field(page).fill("Worth keeping.");
-    await save(page).click();
+    await spark(page).click();
 
     await expect(page.getByRole("link", { name: "Connect your Buffer account" })).toBeVisible();
     await expect(field(page)).toHaveValue("Worth keeping.");

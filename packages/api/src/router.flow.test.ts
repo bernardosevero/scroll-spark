@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { describe, expect, it, vi } from "vitest";
 
+import type { AnalysisService } from "@scroll-spark/core/analysis/analysis.service";
 import type { CaptureService } from "@scroll-spark/core/capture/capture.service";
 import { AppError } from "@scroll-spark/core/errors/app-error";
 import type { PingService } from "@scroll-spark/core/ping/ping.service";
@@ -26,11 +27,24 @@ function createCapture(): CaptureService {
   };
 }
 
+const CAPTURED = { capture: CAPTURE, analysis: null, trendsGeo: "US" };
+const CAPTURE_ID = "00000000-0000-4000-8000-000000000001";
+
+function createAnalysis(): AnalysisService {
+  return {
+    analyze: vi.fn(() => Promise.resolve(CAPTURED)),
+    get: vi.fn(() => Promise.resolve(CAPTURED)),
+    setTrendsGeo: vi.fn(() => Promise.resolve()),
+  };
+}
+
 function callerWith(ping: PingService["ping"], userId: string | null = null) {
   const capture = createCapture();
+  const analysis = createAnalysis();
   return {
     capture,
-    caller: appRouter.createCaller({ userId, services: { ping: { ping }, capture } }),
+    analysis,
+    caller: appRouter.createCaller({ userId, services: { ping: { ping }, capture, analysis } }),
   };
 }
 
@@ -55,6 +69,9 @@ describe("API flow", () => {
     ["INVALID_INPUT", "BAD_REQUEST"],
     ["OAUTH_FAILED", "BAD_REQUEST"],
     ["NOT_SIGNED_IN", "UNAUTHORIZED"],
+    ["NOT_FOUND", "NOT_FOUND"],
+    ["ANALYSIS_LIMIT_REACHED", "TOO_MANY_REQUESTS"],
+    ["LLM_FAILED", "BAD_GATEWAY"],
     ["RECONNECT_REQUIRED", "UNAUTHORIZED"],
     ["BUFFER_RATE_LIMITED", "TOO_MANY_REQUESTS"],
     ["BUFFER_LIMIT_REACHED", "PRECONDITION_FAILED"],
@@ -68,6 +85,45 @@ describe("API flow", () => {
 
     expect(error).toBeInstanceOf(TRPCError);
     expect(error).toMatchObject({ code: trpcCode, message: appCode });
+  });
+});
+
+describe("analysis API", () => {
+  it.each([
+    ["capture.analyze", (caller: Caller) => caller.capture.analyze({ captureId: CAPTURE_ID })],
+    ["capture.get", (caller: Caller) => caller.capture.get({ captureId: CAPTURE_ID })],
+    ["settings.setTrendsGeo", (caller: Caller) => caller.settings.setTrendsGeo({ geo: "BR" })],
+  ])("refuses %s when signed out", async (_name, call) => {
+    const { caller, analysis } = callerWith(noPing, null);
+
+    await expect(call(caller)).rejects.toMatchObject({ message: "NOT_SIGNED_IN" });
+    expect(analysis.analyze).not.toHaveBeenCalled();
+    expect(analysis.setTrendsGeo).not.toHaveBeenCalled();
+  });
+
+  it("passes the signed-in user to the service", async () => {
+    const { caller, analysis } = callerWith(noPing, "user-1");
+
+    await expect(caller.capture.analyze({ captureId: CAPTURE_ID })).resolves.toEqual(CAPTURED);
+
+    expect(analysis.analyze).toHaveBeenCalledWith("user-1", { captureId: CAPTURE_ID });
+  });
+
+  it("refuses a capture ID that isn't one", async () => {
+    const { caller, analysis } = callerWith(noPing, "user-1");
+
+    await expect(caller.capture.analyze({ captureId: "nope" })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
+    expect(analysis.analyze).not.toHaveBeenCalled();
+  });
+
+  it.each(["brazil", "br", "B", ""])("refuses %j as a country", async (geo) => {
+    const { caller } = callerWith(noPing, "user-1");
+
+    await expect(caller.settings.setTrendsGeo({ geo })).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+    });
   });
 });
 
