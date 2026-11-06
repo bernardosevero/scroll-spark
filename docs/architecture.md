@@ -64,6 +64,14 @@ flowchart TB
 
 Cache lifetimes: account and channels 1 hour, ideas 15 minutes, posts 24 hours. The budget per window is the lower of the header quota and the handbook's (100 per 15 minutes, 250 per day, 3,000 per 30 days). Windows are matched by their length in seconds. Writes are never gated by the 80% rule and never retried.
 
+## Deleting a user's data
+
+`account.deleteMyData` calls the `account` service in `core`, which deletes the `users` row. Grants, captures and analyses cascade from it, so every new table that holds user data must reference `users` with `onDelete: "cascade"`. The page then posts to `/api/auth/disconnect?deleted=1`, which clears the session and returns to the landing page.
+
+Buffer documents no endpoint for an app to revoke its own grant, only the user removing the app in their Buffer account settings, so Settings tells the user to do that too.
+
+`account.status` tells the shell whether to show "Reconnect Buffer". The shell also shows it when any call fails with `RECONNECT_REQUIRED`.
+
 ## Reading a link safely
 
 `capture.readLink` makes our server fetch a URL the user chose, so `server/capture/safe-get.ts` guards it. It uses `node:http` because a custom `lookup` checks each address at the moment of connecting, which leaves no gap for a host to pass a check and then rebind to a private address.

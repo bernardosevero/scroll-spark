@@ -1,6 +1,8 @@
 import { TRPCError, initTRPC } from "@trpc/server";
 import type { TRPC_ERROR_CODE_KEY } from "@trpc/server";
 
+import type { AccountService } from "@scroll-spark/core/account/account.service";
+import { accountStatusSchema } from "@scroll-spark/core/account/schemas";
 import type { AnalysisService } from "@scroll-spark/core/analysis/analysis.service";
 import {
   captureIdInputSchema,
@@ -32,6 +34,7 @@ export interface ApiContext {
   userId: string | null;
   services: {
     ping: PingService;
+    account: AccountService;
     capture: CaptureService;
     analysis: AnalysisService;
     channels: ChannelSettingsService;
@@ -120,6 +123,15 @@ export const appRouter = trpc.router({
     setDefaultChannels: signedInProcedure
       .input(channelIdsInputSchema)
       .mutation(({ ctx, input }) => ctx.services.channels.setDefaultChannels(ctx.userId, input)),
+  }),
+
+  account: trpc.router({
+    status: signedInProcedure
+      .output(accountStatusSchema)
+      .query(({ ctx }) => ctx.services.account.status(ctx.userId)),
+    deleteMyData: signedInProcedure.mutation(({ ctx }) =>
+      ctx.services.account.deleteMyData(ctx.userId),
+    ),
   }),
 
   settings: trpc.router({

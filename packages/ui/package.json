@@ -10,6 +10,7 @@
     "./chip-link": "./src/chip-link.tsx",
     "./fit-row": "./src/fit-row.tsx",
     "./ping-card": "./src/ping-card.tsx",
+    "./reconnect-notice": "./src/reconnect-notice.tsx",
     "./reveal": "./src/reveal.tsx",
     "./spark-burst": "./src/spark-burst.tsx",
     "./spark-mark": "./src/spark-mark.tsx",

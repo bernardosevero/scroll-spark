@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 
 import type { ApiContext } from "@scroll-spark/api/router";
+import { createAccountService } from "@scroll-spark/core/account/account.service";
 import { createAnalysisService } from "@scroll-spark/core/analysis/analysis.service";
 import type { LlmGateway } from "@scroll-spark/core/analysis/analysis.service";
 import { createAuthService } from "@scroll-spark/core/auth/auth.service";
@@ -23,6 +24,7 @@ import {
   fakeTokenAuth,
 } from "./buffer/fakes";
 import {
+  createMemoryAccountRepository,
   createMemoryAnalysisRepository,
   createMemoryCaptureRepository,
   createMemoryUserSettings,
@@ -32,6 +34,7 @@ import {
 import { createLinkReader } from "./capture/link-reader";
 import { createSafeGet } from "./capture/safe-get";
 import { createSealer } from "./crypto/seal";
+import { createAccountRepository } from "./db/account-repository";
 import { createAnalysisRepository, createUserSettingsRepository } from "./db/analysis-repository";
 import {
   createBufferCacheRepository,
@@ -89,10 +92,15 @@ function composeStores() {
 
   // With no database nobody can sign in, so the memory stores are only reached by browser flows.
   if (DATABASE_URL === undefined || E2E_FAKES !== undefined) {
+    const captures = createMemoryCaptureRepository();
+    const analyses = createMemoryAnalysisRepository();
+    const settings = createMemoryUserSettings();
+
     return {
-      captures: createMemoryCaptureRepository(),
-      analyses: createMemoryAnalysisRepository(),
-      settings: createMemoryUserSettings(),
+      captures,
+      analyses,
+      settings,
+      accounts: createMemoryAccountRepository([captures, analyses, settings]),
       bufferCache: createMemoryBufferCache(),
       bufferQuota: createMemoryQuotaStore(),
       bufferPreferences: createMemoryBufferPreferences(),
@@ -108,6 +116,7 @@ function composeStores() {
     bufferCache: createBufferCacheRepository({ db }),
     bufferQuota: createBufferQuotaRepository({ db }),
     bufferPreferences: createBufferPreferencesRepository({ db }),
+    accounts: createAccountRepository({ db }),
   };
 }
 
@@ -153,13 +162,14 @@ function composeLlm(logger: Logger): LlmGateway {
 
 function composeProductServices(logger: Logger, oauth: OAuthContext | null) {
   const stores = composeStores();
-  const { captures, analyses, settings } = stores;
+  const { captures, analyses, settings, accounts } = stores;
   const linkReader =
     getEnv().E2E_FAKES === undefined
       ? createLinkReader({ get: createSafeGet(), logger })
       : fakeLinkReader;
 
   return {
+    account: createAccountService({ accounts }),
     capture: createCaptureService({ captures, linkReader }),
     analysis: createAnalysisService({
       llm: composeLlm(logger),

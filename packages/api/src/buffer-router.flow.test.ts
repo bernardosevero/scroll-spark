@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { AccountService } from "@scroll-spark/core/account/account.service";
 import type { AnalysisService } from "@scroll-spark/core/analysis/analysis.service";
 import type { ChannelSettingsService } from "@scroll-spark/core/buffer/channel-settings.service";
 import type { CaptureService } from "@scroll-spark/core/capture/capture.service";
@@ -20,6 +21,7 @@ function setup(userId: string | null) {
     userId,
     services: {
       ping: { ping: () => ({ message: "", answeredAt: "" }) },
+      account: {} as AccountService,
       capture: {} as CaptureService,
       analysis: {} as AnalysisService,
       channels,
