@@ -20,9 +20,9 @@ About 220 words as written, which leaves room for your own origin story.
 
 ## Form fields
 
-- **App client ID:** `[production client ID. Never the secret.]`
+- **App client ID:** `f4OQVSnb3UQ56rP-5Vo4aTllNarOomN4x6dZsX8l2nZ`. It's meant to be public. Never send the secret.
 - **Team:** `[your name and contact. Solo, so you're team captain.]`
-- **App URL:** `https://<production-domain>`
+- **App URL:** `https://scroll-spark-app.vercel.app`
 - **Video:** `[public link]`
 - **Extension:** `[store link]`, plus the GitHub release zip
 - **Build-in-public posts:** `[links]`
@@ -66,4 +66,4 @@ They need to run 80 characters or more to count as history.
 
 **6. Shipping**
 
-> Scroll Spark is live for #BufferCommit: capture a post while you scroll, see how it fits each channel, and ship it through Buffer. Try it at [URL]. Built on the Buffer API. What would make you use it?
+> Scroll Spark is live for #BufferCommit: capture a post while you scroll, see how it fits each channel, and ship it through Buffer. Try it at https://scroll-spark-app.vercel.app. Built on the Buffer API. What would make you use it?

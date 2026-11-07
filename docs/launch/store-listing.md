@@ -43,7 +43,7 @@ Build with the production origin. See [../deploy.md](../deploy.md), step 5. Icon
 2. The analysis card, with fit rows showing counts and dates
 3. The draft editor, with "Save as draft" and the queue button
 
-**Website:** `https://<production-domain>`
+**Website:** `https://scroll-spark-app.vercel.app`
 
 ## Privacy tab
 
@@ -71,7 +71,7 @@ Build with the production origin. See [../deploy.md](../deploy.md), step 5. Icon
 - **Authentication information:** collected. It's the sign-in token for Scroll Spark, stored as a hash on the server.
 - Certify that data isn't sold, isn't used for unrelated purposes, and isn't used for creditworthiness or lending.
 
-**Privacy policy URL:** `https://<production-domain>/privacy`, which must be live first.
+**Privacy policy URL:** `https://scroll-spark-app.vercel.app/privacy`, which must be live first.
 
 ## Notes for the reviewer
 
