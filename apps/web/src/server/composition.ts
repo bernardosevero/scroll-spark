@@ -188,9 +188,9 @@ function composeBuffer(
 }
 
 function composeLlm(logger: Logger): LlmGateway {
-  const { ANTHROPIC_API_KEY, E2E_FAKES } = getEnv();
+  const { ANTHROPIC_API_KEY, E2E_FAKES, FAKE_CLAUDE } = getEnv();
 
-  if (E2E_FAKES !== undefined) {
+  if (E2E_FAKES !== undefined || FAKE_CLAUDE !== undefined) {
     return fakeLlm;
   }
 
@@ -205,9 +205,9 @@ function composeLlm(logger: Logger): LlmGateway {
 }
 
 function composeDraftWriter(logger: Logger): DraftWriter {
-  const { ANTHROPIC_API_KEY, E2E_FAKES } = getEnv();
+  const { ANTHROPIC_API_KEY, E2E_FAKES, FAKE_CLAUDE } = getEnv();
 
-  if (E2E_FAKES !== undefined) {
+  if (E2E_FAKES !== undefined || FAKE_CLAUDE !== undefined) {
     return fakeDraftWriter;
   }
 
