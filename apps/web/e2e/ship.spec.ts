@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
-import { SOLO_ORGANIZATION_USER_ID } from "../src/server/buffer/fakes";
+import { newSoloOrganizationUserId } from "../src/server/buffer/fakes";
 import { signIn } from "./support/session";
 
 const DRAFT = "One customer sent me a single sentence last month. It changed what I built next.";
@@ -21,7 +21,7 @@ async function draftForLinkedIn(page: Page) {
 
 test.describe("with one organization", () => {
   test.beforeEach(async ({ context, page }) => {
-    await signIn(context, { userId: SOLO_ORGANIZATION_USER_ID });
+    await signIn(context, { userId: newSoloOrganizationUserId() });
     await analyzeExample(page);
   });
 

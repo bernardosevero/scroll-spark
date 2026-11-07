@@ -20,7 +20,7 @@ Set these for **Production** only:
 | `BUFFER_CLIENT_ID`, `BUFFER_CLIENT_SECRET` | The **production** Buffer client, never the dev one                        |
 | `DATABASE_URL`                             | The Neon `main` branch                                                     |
 | `SECRET_KEY`                               | `openssl rand -base64 32`. Changing it signs everyone out.                 |
-| `ANTHROPIC_API_KEY`                        | The key with a spend limit, funded through Dec 7                           |
+| `ANTHROPIC_API_KEY`                        | From the account with $5 prepaid and auto-reload off. See ADR 0007.        |
 | `EXTENSION_ORIGIN`                         | `chrome-extension://<id>`, once the store upload gives the extension an ID |
 
 The first five are required: production refuses to start without them.

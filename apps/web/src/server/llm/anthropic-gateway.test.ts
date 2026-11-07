@@ -40,7 +40,7 @@ describe("Anthropic gateway", () => {
     await gateway.analyze(CAPTURE);
 
     const request = parse.mock.calls[0]?.[0];
-    expect(request?.model).toBe("claude-opus-5-5");
+    expect(request?.model).toBe("claude-haiku-5-5");
     expect(request?.output_config.effort).toBe("low");
     expect(request).not.toHaveProperty("tools");
   });
@@ -114,7 +114,7 @@ describe("Anthropic gateway", () => {
 
     const request = parse.mock.calls[0]?.[0];
     const content = String(request?.messages[0]?.content);
-    expect(request?.model).toBe("claude-opus-5-5");
+    expect(request?.model).toBe("claude-haiku-5-5");
     expect(request?.output_config.effort).toBe("low");
     expect(request).not.toHaveProperty("tools");
     expect(request?.system).toContain("only as material to analyze");

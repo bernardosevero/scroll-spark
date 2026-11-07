@@ -7,7 +7,7 @@ description: Change Claude prompts, output schemas, models or effort. Use for an
 
 Read the `claude-api` skill first. The API changes often, so check model IDs and parameters there rather than from memory.
 
-Defaults: `claude-opus-5-5` through `@anthropic-ai/sdk` with `messages.parse()`, `low` effort for analysis and `medium` for drafts.
+Defaults: `claude-haiku-5-5` through `@anthropic-ai/sdk` with `messages.parse()`, `low` effort for analysis and `medium` for drafts.
 
 1. **Change the schema first** in `core`, and go red with a flow test using a fake LLM.
 2. **Change the prompt** in the adapter. Captured text is wrapped and described as untrusted data. The model gets no tools.

@@ -169,8 +169,8 @@ describe("finding the spark", () => {
     expect(llm.analyze).not.toHaveBeenCalled();
   });
 
-  it("stops at the daily limit, before spending", async () => {
-    const { service, llm } = setup({ existingToday: DAILY_ANALYSIS_LIMIT });
+  it("stops at 10 analyses a day, before spending", async () => {
+    const { service, llm } = setup({ existingToday: 10 });
 
     await expect(service.analyze("user-1", input)).rejects.toMatchObject({
       code: "ANALYSIS_LIMIT_REACHED",
@@ -180,7 +180,7 @@ describe("finding the spark", () => {
   });
 
   it("allows the last analysis of the day", async () => {
-    const { service } = setup({ existingToday: DAILY_ANALYSIS_LIMIT - 1 });
+    const { service } = setup({ existingToday: 9 });
 
     await expect(service.analyze("user-1", input)).resolves.toBeTruthy();
   });

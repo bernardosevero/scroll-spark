@@ -5,7 +5,7 @@ import { AppError } from "@scroll-spark/core/errors/app-error";
 import type { Logger } from "@scroll-spark/core/logging/logger";
 import type { DraftBrief, DraftWriter } from "@scroll-spark/core/ship/ship.service";
 
-const MODEL = "claude-opus-5-5";
+const MODEL = "claude-haiku-5-5";
 
 const SYSTEM_PROMPT = `You write a first draft of a social media post for a creator, in their own voice.
 
@@ -75,7 +75,7 @@ function buildRequest({
     max_tokens: 4_000,
     system: SYSTEM_PROMPT,
     messages: [{ role: "user" as const, content: `${brief}\n\n${samples}` }],
-    // Thinking can't be turned off on this model, so effort is the control. No tools, ever.
+    // Effort controls how much the model thinks. No tools, ever.
     output_config: { effort: "medium" as const, format: zodOutputFormat(outputSchema) },
   };
 }

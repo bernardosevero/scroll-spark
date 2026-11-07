@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
-import { SOLO_ORGANIZATION_USER_ID } from "../src/server/buffer/fakes";
+import { newSoloOrganizationUserId } from "../src/server/buffer/fakes";
 import { signIn } from "./support/session";
 
 const ANGLE = "The quiet customer who changed what you built";
@@ -31,7 +31,7 @@ const hasOverflow = (page: Page) =>
 
 test.describe("with reduced motion", () => {
   test.beforeEach(async ({ context, page }) => {
-    await signIn(context, { userId: SOLO_ORGANIZATION_USER_ID });
+    await signIn(context, { userId: newSoloOrganizationUserId() });
     await page.emulateMedia({ reducedMotion: "reduce" });
   });
 
@@ -69,7 +69,7 @@ test.describe("with reduced motion", () => {
 
 test.describe("with motion", () => {
   test.beforeEach(async ({ context, page }) => {
-    await signIn(context, { userId: SOLO_ORGANIZATION_USER_ID });
+    await signIn(context, { userId: newSoloOrganizationUserId() });
     await page.emulateMedia({ reducedMotion: "no-preference" });
   });
 

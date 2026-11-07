@@ -217,14 +217,14 @@ App client limits are shared by all users, and the docs describe them as separat
 - About 10 calls per judge session (estimate): 5 at sign-in, 2 per capture-to-post
 - Read `RateLimit` headers. At 80% of quota, serve reads from cache only and keep the rest for writes.
 - Honour `Retry-After` on 429s, with no loops
-- Cap each user at about 30 analyses a day, and set a spend limit on the LLM account
+- Cap each user at 10 analyses a day, and hold the LLM account to prepaid credit with auto-reload off
 - Separate dev client, so testing can't drain the judging client
 - The real threat is our own testing or build-in-public traffic, not judges
 
 ## 10. AI
 
-- **Model:** Claude Opus 5.5 (`claude-opus-5-5`) for both steps. Thinking can't be disabled on this model, so effort is the control: `low` for analysis, `medium` for drafts.
-- **Cost:** about $0.06 per capture and draft (estimate, at $4/$20 per million tokens), so under $2 per user per day at the cap. Claude Haiku 5.5 ($0.10/$0.50) is the option if the capture card feels slow.
+- **Model:** Claude Haiku 5.5 (`claude-haiku-5-5`) for both steps, with effort as the control: `low` for analysis, `medium` for drafts. See [ADR 0007](adr/0007-haiku-and-a-fixed-cap.md).
+- **Cost:** about $0.002 per capture and draft (estimate, scaled from $0.06 on Opus 5.5 by the 40× price difference, at $0.10/$0.50 per million tokens). The owner's bill can't pass the prepaid credit, and users don't bring keys.
 - **SDK:** official `@anthropic-ai/sdk` with `messages.parse()`. Handle `refusal` responses.
 - **Safety:** captured text is untrusted data, and the model gets no tools. Output only reaches an editor the user reviews.
 
@@ -263,7 +263,7 @@ App client limits are shared by all users, and the docs describe them as separat
 ## 12. Staying live until Dec 7
 
 - Daily job checks the database, makes one tiny AI call and one Buffer call, and emails on failure
-- LLM account funded for the whole period, with credit alerts
+- LLM account holds $5 of prepaid credit with auto-reload off. If it runs out, the daily job's AI call fails and sends the email, so top it up by hand
 - After submitting, deploy only to fix something broken, so the app keeps matching the video
 
 ## 13. Test first
@@ -289,7 +289,7 @@ Run these in the Explorer or from the deployed app before relying on them:
 | OAuth state lost on serverless         | Login broken              | Encrypted `SameSite=Lax` cookie                                                              |
 | LinkedIn markup changes                | Capture breaks            | Small extractor, selected-text fallback, editable review step                                |
 | Thin history for a user or demo        | Weak fit check            | Honest empty state; real build-in-public posts on the demo account                           |
-| Outage during judging                  | Eligibility               | Daily health check, funded LLM account, deploy freeze                                        |
+| Outage during judging                  | Eligibility               | Daily health check, prepaid LLM credit, deploy freeze                                        |
 | Submission is final                    | Can't fix later           | Submit a polished build, not a draft                                                         |
 
 ## 15. Timeline

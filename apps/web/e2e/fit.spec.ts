@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import type { Page } from "@playwright/test";
 
-import { SOLO_ORGANIZATION_USER_ID } from "../src/server/buffer/fakes";
+import { newSoloOrganizationUserId } from "../src/server/buffer/fakes";
 import { signIn } from "./support/session";
 
 const YEAR = String.raw`(, \d{4})?`;
@@ -23,7 +23,7 @@ function row(page: Page, headline: string) {
 
 test.describe("with one organization and its channels", () => {
   test.beforeEach(async ({ context, page }) => {
-    await signIn(context, { userId: SOLO_ORGANIZATION_USER_ID });
+    await signIn(context, { userId: newSoloOrganizationUserId() });
     await page.emulateMedia({ reducedMotion: "reduce" });
     await analyzeExample(page);
   });

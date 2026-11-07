@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { SOLO_ORGANIZATION_USER_ID } from "../src/server/buffer/fakes";
+import { newSoloOrganizationUserId } from "../src/server/buffer/fakes";
 import { signIn } from "./support/session";
 
 test.describe("with two organizations", () => {
@@ -62,7 +62,7 @@ test.describe("with two organizations", () => {
 });
 
 test("one organization skips that step", async ({ context, page }) => {
-  await signIn(context, { userId: SOLO_ORGANIZATION_USER_ID });
+  await signIn(context, { userId: newSoloOrganizationUserId() });
   await page.goto("/channels");
 
   await expect(page.getByRole("checkbox", { name: /Example Studio/ })).toBeEnabled();

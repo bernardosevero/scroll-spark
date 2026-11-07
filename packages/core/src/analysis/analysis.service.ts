@@ -12,8 +12,8 @@ import type {
 } from "./schemas";
 import { trendsLinks } from "./trends";
 
-/** Keeps one user's spend under about $2 a day. Counted from our own rows. */
-export const DAILY_ANALYSIS_LIMIT = 30;
+/** Keeps one user to a few cents a day (estimate). Counted from our own rows. */
+export const DAILY_ANALYSIS_LIMIT = 10;
 
 const DEFAULT_TRENDS_GEO = "US";
 
