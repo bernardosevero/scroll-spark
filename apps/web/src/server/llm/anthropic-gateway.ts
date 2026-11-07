@@ -5,7 +5,7 @@ import type { LlmGateway } from "@scroll-spark/core/analysis/analysis.service";
 import { AppError } from "@scroll-spark/core/errors/app-error";
 import type { Logger } from "@scroll-spark/core/logging/logger";
 
-const MODEL = "claude-opus-5-5";
+const MODEL = "claude-haiku-5-5";
 
 /**
  * A route may run 60 seconds. Profiles are built first, in parallel, and the analysis after, so
@@ -96,7 +96,7 @@ function buildAnalysisRequest({ text, platform, sourceName, channels, ideas }: C
         ].join("\n\n"),
       },
     ],
-    // Thinking can't be turned off on this model, so effort is the control. No tools, ever.
+    // Effort controls how much the model thinks. No tools, ever.
     output_config: { effort: "low" as const, format: zodOutputFormat(analyzeOutputSchema) },
   };
 }

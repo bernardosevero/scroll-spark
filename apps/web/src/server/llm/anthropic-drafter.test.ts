@@ -44,13 +44,13 @@ describe("Anthropic drafter", () => {
     await expect(setup(answered).drafter.write(BRIEF)).resolves.toEqual(OUTPUT);
   });
 
-  it("asks Opus 5.5 at medium effort, with no tools", async () => {
+  it("asks Haiku 5.5 at medium effort, with no tools", async () => {
     const { drafter, parse } = setup(answered);
 
     await drafter.write(BRIEF);
 
     const { request } = requestOf(parse);
-    expect(request.model).toBe("claude-opus-5-5");
+    expect(request.model).toBe("claude-haiku-5-5");
     expect(request.output_config.effort).toBe("medium");
     expect(request).not.toHaveProperty("tools");
   });

@@ -66,8 +66,13 @@ export function createMemoryBufferPreferences(): BufferPreferences {
   };
 }
 
-/** A user with this ID has a single organization. Everyone else has two. */
-export const SOLO_ORGANIZATION_USER_ID = "00000000-0000-4000-8000-000000000001";
+const SOLO_ORGANIZATION_USER_PREFIX = "00000000-0000-4000-8000-";
+
+/** A user with an ID from here has a single organization. Everyone else has two. A new user each
+ * time, so one flow's analyses don't count towards another's daily limit. */
+export function newSoloOrganizationUserId() {
+  return `${SOLO_ORGANIZATION_USER_PREFIX}${crypto.randomUUID().slice(-12)}`;
+}
 
 const TOKEN_PREFIX = "fake-token:";
 
@@ -184,7 +189,7 @@ let ideaCount = 0;
 /** Answers without calling Buffer. Used by browser flows. Text containing "[limit]" plays a plan limit. */
 export const fakeBufferGateway: BufferGateway = {
   account(token) {
-    const isSolo = token === `${TOKEN_PREFIX}${SOLO_ORGANIZATION_USER_ID}`;
+    const isSolo = token.startsWith(`${TOKEN_PREFIX}${SOLO_ORGANIZATION_USER_PREFIX}`);
     const organizations = [
       { id: "org-studio", name: "Example Studio" },
       ...(isSolo ? [] : [{ id: "org-side", name: "Side Projects" }]),
