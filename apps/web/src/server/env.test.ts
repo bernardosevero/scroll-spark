@@ -44,6 +44,17 @@ describe("parseEnv", () => {
     },
   );
 
+  it.each(["production", "preview", "development"])(
+    "refuses sample Claude answers on a Vercel %s deployment",
+    (VERCEL_ENV) => {
+      expect(() => parseEnv({ ...COMPLETE, VERCEL_ENV, FAKE_CLAUDE: "1" })).toThrow("FAKE_CLAUDE");
+    },
+  );
+
+  it("allows sample Claude answers on your own computer", () => {
+    expect(parseEnv({ FAKE_CLAUDE: "1" }).FAKE_CLAUDE).toBe("1");
+  });
+
   it("refuses a health secret too short to be safe", () => {
     expect(() => parseEnv({ HEALTH_SECRET: "short" })).toThrow("HEALTH_SECRET");
   });

@@ -44,3 +44,11 @@ There's no coverage target. The risky logic gets tested properly, and the rest s
 ## Real services
 
 Ask the owner before any test run or script that calls real Buffer or Claude. Use the dev app client, so the judging client's quota stays untouched.
+
+## Trying the app without paying for Claude
+
+Set `FAKE_CLAUDE=1` in `apps/web/.env.local`, and `env.ts` refuses it on any Vercel deployment. Sign-in, Buffer and the database stay real, while analysis, profiles and drafts come from the same fakes the browser flows use. So the topic, angle and draft text are always the same sample, whatever you capture.
+
+This proves real Buffer calls, not Claude's prompts or output. Buffer writes are real, so use a throwaway channel and "Save as draft". The sample Idea and draft land in your Buffer account.
+
+Sample analyses and channel profiles are saved to the database like real ones, so before the first real Claude run, reset the Neon `dev` branch.

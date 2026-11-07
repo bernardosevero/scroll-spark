@@ -34,10 +34,20 @@ const envSchema = z
     SECRET_KEY: optional(secretKey),
     /** Swaps real services for fakes in browser flows. Refused on any Vercel deployment. */
     E2E_FAKES: optional(z.literal("1")),
+    /** Sample answers instead of Claude, with Buffer and the database still real. Refused on Vercel. */
+    FAKE_CLAUDE: optional(z.literal("1")),
   })
   .superRefine((env, context) => {
     if (env.VERCEL_ENV !== undefined && env.E2E_FAKES !== undefined) {
       context.addIssue({ code: "custom", path: ["E2E_FAKES"], message: "is for local tests only" });
+    }
+
+    if (env.VERCEL_ENV !== undefined && env.FAKE_CLAUDE !== undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["FAKE_CLAUDE"],
+        message: "is for local tests only",
+      });
     }
 
     if (env.VERCEL_ENV !== "production") {
