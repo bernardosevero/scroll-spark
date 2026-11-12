@@ -23,6 +23,47 @@ const AUTHOR = [
   ".update-components-actor__name",
 ].join(",");
 
+const IMAGE = [
+  '[data-view-name="feed-update-image"] img',
+  ".update-components-image img",
+  "img.update-components-image__image",
+].join(",");
+
+/** LinkedIn's alt text when the author wrote none, which says nothing about the image. */
+const NO_DESCRIPTION = /^no alternative text description/i;
+const MAX_DESCRIBED_IMAGES = 4;
+const MAX_DESCRIPTION = 200;
+
+/** The post's own images, in order, never a reshared post's. */
+function imagesOf(post: Element) {
+  return [...new Set(post.querySelectorAll(IMAGE))].filter((image) => image.closest(POST) === post);
+}
+
+/**
+ * Lines that tell the analysis what the post's images show, from their alt text, since a post's
+ * point is often in a chart or a slide. The user sees and can edit them like the rest of the text.
+ */
+function imageNotes(post: Element) {
+  const images = imagesOf(post);
+  const described = images
+    .map((image) => (image.getAttribute("alt") ?? "").replace(/\s+/g, " ").trim())
+    .filter((alt) => alt !== "" && !NO_DESCRIPTION.test(alt))
+    .slice(0, MAX_DESCRIBED_IMAGES);
+  const rest = images.length - described.length;
+  const plural = (count: number) => (count === 1 ? "image" : "images");
+  const lines = described.map((alt) => `[Image: ${alt.slice(0, MAX_DESCRIPTION)}]`);
+
+  if (rest > 0) {
+    lines.push(
+      described.length === 0
+        ? `[This post has ${String(rest)} ${plural(rest)}, with no description]`
+        : `[${String(rest)} more ${plural(rest)} with no description]`,
+    );
+  }
+
+  return lines.join("\n");
+}
+
 /** The first match that belongs to this post, not to a post it reshares. */
 function ownMatch(post: Element, selector: string) {
   return [...post.querySelectorAll(selector)].find((match) => match.closest(POST) === post) ?? null;
@@ -56,8 +97,10 @@ export function extractLinkedIn(doc: Document, view: PageView): PageCapture | nu
     return null;
   }
 
+  const notes = imageNotes(post);
+
   return {
-    text,
+    text: notes === "" ? text : `${text}\n\n${notes}`,
     author: authorOf(post),
     url: `https://www.linkedin.com/feed/update/${urn}/`,
     platform: "linkedin",
