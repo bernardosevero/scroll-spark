@@ -2,7 +2,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { createRef } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { Button } from "./button";
+import { Button, ButtonLink } from "./button";
 import { ChipButton } from "./chip-button";
 import { FitRow } from "./fit-row";
 import { ReconnectNotice } from "./reconnect-notice";
@@ -24,6 +24,30 @@ describe("design system", () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+  });
+
+  it("centers a link button's label, as a button does, so a stack of both lines up", () => {
+    render(<ButtonLink href="/inbox">Open in your inbox</ButtonLink>);
+
+    const link = screen.getByRole("link", { name: "Open in your inbox" });
+    expect(link.className).toContain("justify-center");
+    expect(link.className).toContain("text-center");
+  });
+
+  it("shows a pointer over buttons and chips, and not over a disabled one", () => {
+    render(
+      <>
+        <Button>Save idea</Button>
+        <ChipButton>A founder story</ChipButton>
+      </>,
+    );
+
+    const button = screen.getByRole("button", { name: "Save idea" });
+    expect(button.className).toContain("cursor-pointer");
+    expect(button.className).toContain("disabled:cursor-not-allowed");
+    expect(screen.getByRole("button", { name: "A founder story" }).className).toContain(
+      "cursor-pointer",
+    );
   });
 
   it("keeps a button from submitting forms unless asked", () => {
