@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AnalysisCard } from "./analysis-card";
+import { AssistantPrompt } from "./assistant-prompt";
 import { DraftEditorView } from "./draft-editor-view";
 import type { DraftEditorViewProps } from "./draft-editor-view";
 import { FitCheck } from "./fit-check";
@@ -283,5 +284,43 @@ describe("draft editor", () => {
     fireEvent.change(screen.getByLabelText("Your draft"), { target: { value: "New." } });
 
     expect(onTextChange).toHaveBeenCalledWith("New.");
+  });
+});
+
+describe("assistant prompt", () => {
+  it("copies the prompt and links to Claude and ChatGPT in a new tab", async () => {
+    const writeText = vi.fn(() => Promise.resolve());
+    vi.stubGlobal("navigator", { clipboard: { writeText } });
+    render(<AssistantPrompt prompt="Write one LinkedIn post for me." isLoading={false} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy prompt" }));
+
+    expect(writeText).toHaveBeenCalledWith("Write one LinkedIn post for me.");
+    await screen.findByText("Copied.");
+    for (const [name, href] of [
+      ["Open Claude", "https://claude.ai/new"],
+      ["Open ChatGPT", "https://chatgpt.com/"],
+    ]) {
+      const link = screen.getByRole("link", { name });
+      expect(link.getAttribute("href")).toBe(href);
+      expect(link.getAttribute("target")).toBe("_blank");
+      expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    }
+  });
+
+  it("opens the prompt for copying by hand when the browser won't copy", async () => {
+    vi.stubGlobal("navigator", { clipboard: { writeText: () => Promise.reject(new Error("no")) } });
+    render(<AssistantPrompt prompt="Write one LinkedIn post for me." isLoading={false} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Copy prompt" }));
+
+    await screen.findByText(/didn't allow copying/);
+    expect(screen.getByText("Write one LinkedIn post for me.").closest("details")?.open).toBe(true);
+  });
+
+  it("says it is preparing while it loads", () => {
+    render(<AssistantPrompt prompt={null} isLoading />);
+
+    expect(screen.getByRole("status").textContent).toContain("Preparing a prompt");
   });
 });

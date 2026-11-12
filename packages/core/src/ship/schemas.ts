@@ -42,6 +42,9 @@ export const draftResultSchema = z.object({
   overlap: z.object({ isClose: z.boolean(), share: z.number() }),
 });
 
+/** A prompt to paste into the user's own assistant. */
+export const assistantPromptSchema = z.object({ prompt: z.string() });
+
 export const postInputSchema = z.object({
   captureId,
   channelId: z.string().min(1),
@@ -61,5 +64,6 @@ export type SavedIdea = z.infer<typeof savedIdeaSchema>;
 export type IdeaState = z.infer<typeof ideaStateSchema>;
 export type DraftInput = z.infer<typeof draftInputSchema>;
 export type DraftResult = z.infer<typeof draftResultSchema>;
+export type AssistantPrompt = z.infer<typeof assistantPromptSchema>;
 export type PostInput = z.infer<typeof postInputSchema>;
 export type PostResult = z.infer<typeof postResultSchema>;

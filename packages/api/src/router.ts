@@ -28,6 +28,7 @@ import { AppError } from "@scroll-spark/core/errors/app-error";
 import type { AppErrorCode } from "@scroll-spark/core/errors/app-error";
 import type { ShipService } from "@scroll-spark/core/ship/ship.service";
 import {
+  assistantPromptSchema,
   draftInputSchema,
   draftResultSchema,
   ideaStateSchema,
@@ -153,6 +154,10 @@ export const appRouter = trpc.router({
       .input(draftInputSchema)
       .output(draftResultSchema)
       .mutation(({ ctx, input }) => ctx.services.ship.draft(ctx.userId, input)),
+    assistantPrompt: signedInProcedure
+      .input(draftInputSchema)
+      .output(assistantPromptSchema)
+      .query(({ ctx, input }) => ctx.services.ship.assistantPrompt(ctx.userId, input)),
   }),
 
   post: trpc.router({

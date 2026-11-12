@@ -370,6 +370,57 @@ describe("drafting in your voice", () => {
   });
 });
 
+describe("writing it with your own assistant", () => {
+  it("builds a prompt from the angle, summary and voice samples, and never the source text", async () => {
+    const { service } = setup();
+
+    const { prompt } = await service.assistantPrompt(USER, draftInput);
+
+    expect(prompt).toContain(ANALYSIS.angle);
+    expect(prompt).toContain(ANALYSIS.summary);
+    expect(prompt).toContain("Post 0: I spent a whole weekend");
+    expect(prompt).toContain("3,000 characters");
+    expect(prompt).not.toContain(SOURCE_TEXT);
+    expect(prompt).not.toContain("Zanzibar");
+  });
+
+  it("costs nothing: no model call, and it still works past the daily draft limit", async () => {
+    const { service, writer } = setup({ usedToday: DAILY_DRAFT_LIMIT });
+
+    await expect(service.assistantPrompt(USER, draftInput)).resolves.toHaveProperty("prompt");
+
+    expect(writer.write).not.toHaveBeenCalled();
+  });
+
+  it("asks for a plain voice when there are too few posts to match", async () => {
+    const { service } = setup({ posts: [post(0, LONG("Only one"))] });
+
+    const { prompt } = await service.assistantPrompt(USER, draftInput);
+
+    expect(prompt).toContain("plain, warm voice");
+    expect(prompt).not.toContain("Only one");
+  });
+
+  it("writes in the language asked for", async () => {
+    const { service } = setup();
+
+    const { prompt } = await service.assistantPrompt(USER, {
+      ...draftInput,
+      language: "portuguese",
+    });
+
+    expect(prompt).toContain("Write it in Portuguese.");
+  });
+
+  it("treats someone else's capture as missing", async () => {
+    const { service } = setup({ captureIsOwned: false });
+
+    await expect(service.assistantPrompt(USER, draftInput)).rejects.toMatchObject({
+      code: "NOT_FOUND",
+    });
+  });
+});
+
 describe("creating a post", () => {
   it("Save as draft passes saveToDraft and the idea's ID", async () => {
     const { service, buffer } = setup();

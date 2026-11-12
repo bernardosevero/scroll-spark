@@ -1,3 +1,4 @@
+import { AppError } from "@scroll-spark/core/errors/app-error";
 import type { DraftRunLog, DraftWriter, IdeaLinks } from "@scroll-spark/core/ship/ship.service";
 
 /** Memory only, like the other fakes: used by browser flows. */
@@ -45,13 +46,16 @@ export function createMemoryDraftRuns(): MemoryStore & DraftRunLog {
 }
 
 /** Answers without spending anything. Never sees the source text, only the brief. */
+/** Writes a fixed draft. Asking for German plays a failed draft, so flows can test what follows. */
 export const fakeDraftWriter: DraftWriter = {
   model: "fake-writer",
   write: ({ language }) =>
-    Promise.resolve({
-      text:
-        language === "Portuguese"
-          ? "Um cliente me mandou uma frase só. Mudou o que eu construí a seguir."
-          : "One customer sent me a single sentence last month. It changed what I built next.",
-    }),
+    language === "German"
+      ? Promise.reject(new AppError("LLM_FAILED"))
+      : Promise.resolve({
+          text:
+            language === "Portuguese"
+              ? "Um cliente me mandou uma frase só. Mudou o que eu construí a seguir."
+              : "One customer sent me a single sentence last month. It changed what I built next.",
+        }),
 };

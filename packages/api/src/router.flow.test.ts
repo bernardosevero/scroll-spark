@@ -77,6 +77,7 @@ function createShip(): ShipService {
     saveAsIdea: vi.fn(() => Promise.resolve({ ideaId: "idea-1", isNew: true })),
     ideaOf: vi.fn(() => Promise.resolve({ ideaId: null })),
     draft: vi.fn(() => Promise.resolve(DRAFT)),
+    assistantPrompt: vi.fn(() => Promise.resolve({ prompt: "Write one LinkedIn post for me." })),
     createPost: vi.fn(() =>
       Promise.resolve({ postId: "post-1", kind: "draft" as const, channelId: "ch-1" }),
     ),
@@ -295,6 +296,7 @@ describe("ship API", () => {
     ],
     ["capture.ideaOf", (caller: Caller) => caller.capture.ideaOf({ captureId: CAPTURE_ID })],
     ["draft.create", (caller: Caller) => caller.draft.create(draftInput)],
+    ["draft.assistantPrompt", (caller: Caller) => caller.draft.assistantPrompt(draftInput)],
     ["post.create", (caller: Caller) => caller.post.create(postInput)],
   ])("refuses %s when signed out", async (_name, call) => {
     const { caller, ship } = callerWith(noPing, null);
@@ -302,6 +304,7 @@ describe("ship API", () => {
     await expect(call(caller)).rejects.toMatchObject({ message: "NOT_SIGNED_IN" });
     expect(ship.saveAsIdea).not.toHaveBeenCalled();
     expect(ship.draft).not.toHaveBeenCalled();
+    expect(ship.assistantPrompt).not.toHaveBeenCalled();
     expect(ship.createPost).not.toHaveBeenCalled();
   });
 
@@ -315,6 +318,18 @@ describe("ship API", () => {
     expect(ship.saveAsIdea).toHaveBeenCalledWith("user-1", { captureId: CAPTURE_ID });
     expect(ship.draft).toHaveBeenCalledWith("user-1", { ...draftInput, language: "same" });
     expect(ship.createPost).toHaveBeenCalledWith("user-1", postInput);
+  });
+
+  it("gives the signed-in user a prompt for their own assistant", async () => {
+    const { caller, ship } = callerWith(noPing, "user-1");
+
+    await expect(caller.draft.assistantPrompt(draftInput)).resolves.toEqual({
+      prompt: "Write one LinkedIn post for me.",
+    });
+    expect(ship.assistantPrompt).toHaveBeenCalledWith("user-1", {
+      ...draftInput,
+      language: "same",
+    });
   });
 
   it.each([

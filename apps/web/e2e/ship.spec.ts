@@ -144,6 +144,35 @@ test.describe("with one organization", () => {
     await expect(page.getByLabel("Your draft")).toHaveValue("Typed before asking for help.");
   });
 
+  test("a failed draft offers a prompt for your own assistant, without the original post", async ({
+    page,
+  }) => {
+    await page.getByLabel("Write in").selectOption("german");
+
+    await page.getByRole("button", { name: "Write a draft" }).click();
+
+    await expect(page.getByText("That didn't work this time.")).toBeVisible();
+    const panel = page.getByRole("region", { name: "Write it with your own assistant" });
+    await expect(panel.getByRole("button", { name: "Copy prompt" })).toBeVisible();
+    await expect(panel.getByRole("link", { name: "Open Claude" })).toHaveAttribute(
+      "href",
+      "https://claude.ai/new",
+    );
+    await expect(panel.getByRole("link", { name: "Open ChatGPT" })).toHaveAttribute(
+      "href",
+      "https://chatgpt.com/",
+    );
+
+    await panel.getByText("See the prompt").click();
+    const prompt = panel.locator("pre");
+    await expect(prompt).toContainText("The quiet customer who changed what you built");
+    await expect(prompt).toContainText("Write it in German.");
+    await expect(prompt).not.toContainText("We spent eight months");
+
+    await page.getByLabel("Your draft").fill("Pasted from my own assistant.");
+    await expect(page.getByRole("button", { name: "Save as draft" })).toBeEnabled();
+  });
+
   test("the draft can be written in another language", async ({ page }) => {
     await page.getByLabel("Write in").selectOption("portuguese");
 

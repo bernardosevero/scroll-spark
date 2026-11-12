@@ -11,6 +11,7 @@ import {
 } from "@scroll-spark/api/client";
 import type { ChannelView, DraftResult } from "@scroll-spark/api/client";
 import { useTRPC } from "@scroll-spark/api/react";
+import { AssistantPrompt } from "@scroll-spark/ui/assistant-prompt";
 import { Button, ButtonLink } from "@scroll-spark/ui/button";
 import { Card } from "@scroll-spark/ui/card";
 import { DraftEditorView } from "@scroll-spark/ui/draft-editor-view";
@@ -27,6 +28,16 @@ import { Failure } from "./failure";
 import type { Sent } from "./done-stage";
 
 type Language = (typeof DRAFT_LANGUAGES)[number];
+
+/** When we can't write the draft ourselves, the user can still ask their own assistant. */
+const OWN_ASSISTANT_CODES: ReadonlySet<string> = new Set(["LLM_FAILED", "DRAFT_LIMIT_REACHED"]);
+
+function OwnAssistant(input: { captureId: string; channelId: string; language?: Language }) {
+  const trpc = useTRPC();
+  const prompt = useQuery(trpc.draft.assistantPrompt.queryOptions(input));
+
+  return <AssistantPrompt prompt={prompt.data?.prompt ?? null} isLoading={prompt.isPending} />;
+}
 
 interface Links {
   webOrigin: string;
@@ -99,6 +110,9 @@ function WriteDraft({
           webOrigin={links.webOrigin}
           connectUrl={links.connectUrl}
         />
+      )}
+      {draft.isError && code !== null && OWN_ASSISTANT_CODES.has(code) && (
+        <OwnAssistant {...draft.variables} />
       )}
     </div>
   );
