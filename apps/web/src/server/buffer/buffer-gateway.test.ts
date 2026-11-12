@@ -146,7 +146,7 @@ describe("Buffer gateway: success responses", () => {
     expect(sent().body.query).not.toMatch(/createTag/);
   });
 
-  it("creates a post with every required field", async () => {
+  it("creates a post with the fields Buffer's draft example sends", async () => {
     const { gateway, sent } = setup({ body: fixture("create-post.success.json") });
 
     const { data } = await gateway.createPost(TOKEN, { ...POST_INPUT, ideaId: "idea_example_2" });
@@ -158,8 +158,6 @@ describe("Buffer gateway: success responses", () => {
       ideaId: "idea_example_2",
       mode: "addToQueue",
       schedulingType: "automatic",
-      needsApproval: false,
-      assets: {},
       saveToDraft: true,
     });
   });

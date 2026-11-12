@@ -343,6 +343,23 @@ describe("building channel profiles", () => {
     expect(context.assessments?.map(({ channelId }) => channelId)).toEqual(["ot", "li", "ig"]);
   });
 
+  it("tells apart two channels with the same name by their service", async () => {
+    const { service } = setup({
+      channels: [
+        channel("li", "Bernardo Severo"),
+        channel("ss", "Bernardo Severo", { service: "substack" }),
+      ],
+      posts: { li: linkedinPosts(), ss: [] },
+    });
+
+    const context = await service.prepare(USER);
+
+    expect(context.assessments?.map(({ channelName }) => channelName)).toEqual([
+      "Bernardo Severo (LinkedIn)",
+      "Bernardo Severo (Substack)",
+    ]);
+  });
+
   it.each([
     ["too few", [{ name: "One", postIds: ["li-c1", "li-c2", "li-c3", "li-a1", "li-a2"] }]],
     [

@@ -41,7 +41,7 @@ export function FitCheck({ rows, duplicateNote, emptyAction }: FitCheckProps) {
       {title}
       <ul className="flex flex-col gap-3">
         {rows.map(({ matchCount, ...row }, index) => (
-          <li key={row.channel}>
+          <li key={`${String(index)}-${row.channel}`}>
             <FitReveal matchCount={matchCount} index={index}>
               <FitRow {...row} />
             </FitReveal>
