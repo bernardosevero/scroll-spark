@@ -3,6 +3,8 @@ import type { ReactNode } from "react";
 
 import { SparkMark } from "@scroll-spark/ui/spark-mark";
 
+import { SiteCredit } from "./site-credit";
+
 export const REPO_URL = "https://github.com/bernardosevero/scroll-spark";
 
 const LINK = "inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline";
@@ -38,7 +40,10 @@ export function PublicFrame({
       </header>
       {children}
       <footer className="mx-auto mt-10 flex max-w-[1160px] flex-wrap items-center justify-between gap-x-6 gap-y-1 border-t-[3px] border-navy px-6 py-5">
-        <p className="font-medium">Built on the Buffer API.</p>
+        <div>
+          <p className="font-medium">Built on the Buffer API.</p>
+          <SiteCredit />
+        </div>
         <div className="flex flex-wrap gap-x-6">
           <Link href="/privacy" className={LINK}>
             Privacy

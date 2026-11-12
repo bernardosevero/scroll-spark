@@ -9,6 +9,7 @@ import { ReconnectNotice } from "@scroll-spark/ui/reconnect-notice";
 import { SparkMark } from "@scroll-spark/ui/spark-mark";
 
 import { ApiProvider } from "../api/api-provider";
+import { SiteCredit } from "./site-credit";
 import { useReconnectNeeded } from "./use-reconnect-needed";
 
 const NAV = [
@@ -76,6 +77,9 @@ function Shell({ children }: { children: ReactNode }) {
         </div>
       </header>
       {children}
+      <footer className="mx-auto mt-10 max-w-[1160px] border-t-[3px] border-navy px-6 py-5">
+        <SiteCredit />
+      </footer>
     </>
   );
 }

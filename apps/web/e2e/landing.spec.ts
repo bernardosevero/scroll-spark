@@ -113,3 +113,17 @@ test.describe("at phone width", () => {
     }
   });
 });
+
+test("every page credits its maker, public and signed in", async ({ context, page }) => {
+  for (const path of ["/", "/privacy"]) {
+    await page.goto(path);
+    await expect(page.getByText("© Bernardo Severo - 2026 | Made with")).toBeVisible();
+    await expect(page.getByRole("img", { name: "Brazil" })).toBeVisible();
+  }
+
+  await signIn(context);
+  await page.goto("/inbox");
+
+  await expect(page.getByText("© Bernardo Severo - 2026 | Made with")).toBeVisible();
+  await expect(page.getByRole("img", { name: "love" })).toBeVisible();
+});
