@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import article from "./fixtures/article.html?raw";
 import linkedInChanged from "./fixtures/linkedin-changed-markup.html?raw";
 import linkedInFeed from "./fixtures/linkedin-feed.html?raw";
+import linkedInImages from "./fixtures/linkedin-image-posts.html?raw";
 import linkedInReshare from "./fixtures/linkedin-reshare-only.html?raw";
 import youTubeChanged from "./fixtures/youtube-changed-markup.html?raw";
 import youTubeWatch from "./fixtures/youtube-watch.html?raw";
@@ -32,6 +33,32 @@ const FEED = "https://www.linkedin.com/feed/";
 const FIRST = "urn:li:activity:7000000000000000001";
 const SECOND = "urn:li:activity:7000000000000000002";
 const THIRD = "urn:li:share:7000000000000000003";
+
+describe("LinkedIn posts with images", () => {
+  const WITH_CHART = "urn:li:activity:7000000000000000021";
+  const SLIDES = "urn:li:activity:7000000000000000022";
+
+  it("notes the post's images after its text, with their descriptions, and leaves out a reshare's", () => {
+    const view = viewOf(FEED, { tops: { [WITH_CHART]: [100, 700], [SLIDES]: [900, 1300] } });
+
+    expect(capturePage(parse(linkedInImages), view)?.text).toBe(
+      [
+        "One fix changed our support queue. Look at the chart.",
+        "",
+        "[Image: A line chart: support emails fall by half after one small fix]",
+        "[1 more image with no description]",
+      ].join("\n"),
+    );
+  });
+
+  it("says how many images there are when none has a description", () => {
+    const view = viewOf(FEED, { tops: { [WITH_CHART]: [-900, -300], [SLIDES]: [100, 700] } });
+
+    expect(capturePage(parse(linkedInImages), view)?.text).toBe(
+      "Two slides from my talk.\n\n[This post has 2 images, with no description]",
+    );
+  });
+});
 
 describe("LinkedIn", () => {
   it("chooses the post nearest the middle, with its text, author and link", () => {
