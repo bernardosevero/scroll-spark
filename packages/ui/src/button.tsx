@@ -24,7 +24,7 @@ export function Button({
   return (
     <button
       type={type}
-      className={`min-h-14 ${BASE} disabled:translate-0 disabled:cursor-not-allowed disabled:bg-stone disabled:text-navy disabled:shadow-none ${VARIANTS[variant]} ${className}`}
+      className={`min-h-14 cursor-pointer ${BASE} disabled:translate-0 disabled:cursor-not-allowed disabled:bg-stone disabled:text-navy disabled:shadow-none ${VARIANTS[variant]} ${className}`}
       {...props}
     />
   );
@@ -38,7 +38,7 @@ export interface ButtonLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement>
 export function ButtonLink({ variant = "spark", className = "", ...props }: ButtonLinkProps) {
   return (
     <a
-      className={`inline-flex min-h-14 items-center ${BASE} ${VARIANTS[variant]} ${className}`}
+      className={`inline-flex min-h-14 items-center justify-center text-center ${BASE} ${VARIANTS[variant]} ${className}`}
       {...props}
     />
   );

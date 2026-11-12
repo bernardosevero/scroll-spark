@@ -142,6 +142,7 @@ function ConnectBody({ extensionId }: { extensionId: string | null }) {
             <p className="font-medium text-danger">We couldn&apos;t load your connections.</p>
             <Button
               variant="plain"
+              disabled={list.isFetching}
               onClick={() => {
                 void list.refetch();
               }}
