@@ -442,6 +442,27 @@ describe("the draft", () => {
     });
   });
 
+  it("offers a prompt for your own assistant when the draft can't be written", async () => {
+    const api = await toTheAnalysis({
+      "draft.create": failure("LLM_FAILED"),
+      "draft.assistantPrompt": { prompt: "Write one LinkedIn post for me." },
+    });
+
+    click("Draft a post");
+
+    expect(await screen.findByRole("button", { name: "Copy prompt" })).toBeInTheDocument();
+    expect(api.called("draft.assistantPrompt")[0]?.input).toEqual({
+      captureId: "capture-1",
+      channelId: "li",
+      language: "same",
+    });
+    expect(screen.getByRole("link", { name: "Open Claude" })).toHaveAttribute(
+      "href",
+      "https://claude.ai/new",
+    );
+    expect(screen.getByLabelText("Your draft")).toBeEnabled();
+  });
+
   it("names the language when one is chosen", async () => {
     const api = await toTheDraft();
 

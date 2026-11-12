@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./assistant-prompt": "./src/assistant-prompt.tsx",
     "./button": "./src/button.tsx",
     "./analysis-card": "./src/analysis-card.tsx",
     "./card": "./src/card.tsx",

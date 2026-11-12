@@ -1,6 +1,6 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 
 import {
@@ -12,6 +12,7 @@ import {
 } from "@scroll-spark/api/client";
 import type { ChannelView, DraftResult } from "@scroll-spark/api/client";
 import { useTRPC } from "@scroll-spark/api/react";
+import { AssistantPrompt } from "@scroll-spark/ui/assistant-prompt";
 import { Button } from "@scroll-spark/ui/button";
 import { DraftEditorView } from "@scroll-spark/ui/draft-editor-view";
 import {
@@ -26,6 +27,16 @@ import { SessionOver } from "../capture/session-over";
 
 type Language = (typeof DRAFT_LANGUAGES)[number];
 type Kind = "draft" | "queue";
+
+/** When we can't write the draft ourselves, the user can still ask their own assistant. */
+const OWN_ASSISTANT_CODES: ReadonlySet<string> = new Set(["LLM_FAILED", "DRAFT_LIMIT_REACHED"]);
+
+function OwnAssistant(input: { captureId: string; channelId: string; language?: Language }) {
+  const trpc = useTRPC();
+  const prompt = useQuery(trpc.draft.assistantPrompt.queryOptions(input));
+
+  return <AssistantPrompt prompt={prompt.data?.prompt ?? null} isLoading={prompt.isPending} />;
+}
 
 function WriteDraft({
   captureId,
@@ -88,6 +99,9 @@ function WriteDraft({
             {draftFailureMessage(code)}
           </p>
         ))}
+      {draft.isError && code !== null && OWN_ASSISTANT_CODES.has(code) && (
+        <OwnAssistant {...draft.variables} />
+      )}
     </div>
   );
 }

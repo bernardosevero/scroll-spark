@@ -7,10 +7,12 @@ import type { ChannelView } from "../buffer/schemas";
 import type { Capture } from "../capture/schemas";
 import { AppError } from "../errors/app-error";
 import type { Clock } from "../time/clock";
+import { assistantPrompt } from "./assistant-prompt";
 import { characterLimitFor, countCharacters } from "./limits";
 import { findOverlap } from "./overlap";
 import { llmDraftSchema } from "./schemas";
 import type {
+  AssistantPrompt,
   DraftInput,
   DraftResult,
   IdeaState,
@@ -73,6 +75,8 @@ export interface ShipService {
   saveAsIdea(userId: string, input: ShipCaptureInput): Promise<SavedIdea>;
   ideaOf(userId: string, input: ShipCaptureInput): Promise<IdeaState>;
   draft(userId: string, input: DraftInput): Promise<DraftResult>;
+  /** A prompt for the user's own assistant, for when we can't write the draft. Costs nothing. */
+  assistantPrompt(userId: string, input: DraftInput): Promise<AssistantPrompt>;
   /** Never retried: a queued post may publish for real. */
   createPost(userId: string, input: PostInput): Promise<PostResult>;
 }
@@ -194,7 +198,8 @@ export function createShipService({
     return { ideaId: await ideas.save(userId, captureId, created.id), isNew: true };
   }
 
-  async function writeDraft(userId: string, input: DraftInput): Promise<DraftResult> {
+  /** The capture, its analysis and the channel a draft is for, all checked. */
+  async function draftTarget(userId: string, input: DraftInput) {
     const capture = await ownedCapture(userId, input.captureId);
     const analysis = await analyses.find(input.captureId);
 
@@ -202,7 +207,28 @@ export function createShipService({
       throw new AppError("INVALID_INPUT");
     }
 
-    const { organizationId, channel } = await postableChannel(userId, input.channelId);
+    return { capture, analysis, ...(await postableChannel(userId, input.channelId)) };
+  }
+
+  function briefFor(
+    analysis: Analysis,
+    channel: ChannelView,
+    voiceSamples: string[],
+    language: DraftInput["language"],
+  ): DraftBrief {
+    return {
+      angle: analysis.angle,
+      summary: analysis.summary,
+      topic: analysis.topic,
+      service: channel.service,
+      characterLimit: characterLimitFor(channel.service),
+      voiceSamples,
+      language: language === "same" ? null : LANGUAGE_NAMES[language],
+    };
+  }
+
+  async function writeDraft(userId: string, input: DraftInput): Promise<DraftResult> {
+    const { capture, analysis, organizationId, channel } = await draftTarget(userId, input);
     const now = clock.now();
 
     if ((await runs.countSince(userId, startOfUtcDay(now))) >= DAILY_DRAFT_LIMIT) {
@@ -216,15 +242,7 @@ export function createShipService({
     await runs.record(userId, input.captureId, now);
 
     const answer = llmDraftSchema.safeParse(
-      await writer.write({
-        angle: analysis.angle,
-        summary: analysis.summary,
-        topic: analysis.topic,
-        service: channel.service,
-        characterLimit: characterLimitFor(channel.service),
-        voiceSamples: isMatched ? samples : [],
-        language: input.language === "same" ? null : LANGUAGE_NAMES[input.language],
-      }),
+      await writer.write(briefFor(analysis, channel, isMatched ? samples : [], input.language)),
     );
 
     if (!answer.success) {
@@ -280,6 +298,18 @@ export function createShipService({
     },
 
     draft: (userId, input) => writeDraft(userId, input),
+
+    async assistantPrompt(userId, input) {
+      const { analysis, organizationId, channel } = await draftTarget(userId, input);
+      const samples = await voiceFor(userId, organizationId, channel);
+      const isMatched = samples.length >= MIN_VOICE_SAMPLES;
+
+      return {
+        prompt: assistantPrompt(
+          briefFor(analysis, channel, isMatched ? samples : [], input.language),
+        ),
+      };
+    },
 
     createPost: (userId, input) =>
       once(`post|${userId}|${input.captureId}|${input.channelId}|${input.kind}|${input.text}`, () =>
