@@ -361,7 +361,8 @@ describe("building channel profiles", () => {
   });
 
   it.each([
-    ["too few", [{ name: "One", postIds: ["li-c1", "li-c2", "li-c3", "li-a1", "li-a2"] }]],
+    ["no", []],
+    ["only unknown-post", [{ name: "One", postIds: ["not-a-post"] }]],
     [
       "too many",
       Array.from({ length: 9 }, (_, index) => ({
@@ -378,6 +379,22 @@ describe("building channel profiles", () => {
     expect(context.assessments?.[0]).toMatchObject({ channelId: "li", state: "unavailable" });
     expect(context.prompt.channels).toEqual([]);
     expect(logger.warn).toHaveBeenCalledWith("fit.profile_failed", expect.any(Object));
+  });
+
+  it("accepts fewer clusters when a short history covers fewer subjects", async () => {
+    const { service, llm } = setup({ channels: [LINKEDIN] });
+    llm.profile.mockResolvedValue({
+      summaries: [],
+      clusters: [
+        { name: "Customers", postIds: ["li-c1", "li-c2", "li-c3"] },
+        { name: "AI tools", postIds: ["li-a1", "li-a2"] },
+      ],
+    });
+
+    const context = await service.prepare(USER);
+
+    expect(context.assessments?.[0]).toMatchObject({ channelId: "li", state: "ready" });
+    expect(context.prompt.channels[0]?.clusters).toHaveLength(2);
   });
 
   it("accepts anything from five to eight clusters", async () => {
