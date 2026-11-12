@@ -43,7 +43,7 @@ The user message holds <channel_posts>: a JSON list of posts, each with an id an
 
 Return:
 - summaries: one entry for every post, with its id exactly as given and a one-line summary in your own words, under 20 words, in the language of the post.
-- clusters: group the posts by subject into named clusters. Make five to eight clusters, or fewer only when there are fewer than five posts. Name each one in two to four words, in the language most of the posts use, describing what this channel really talks about. There is no fixed list of topics. Each post goes in at most one cluster, and postIds must be ids exactly as given.
+- clusters: group the posts by subject into named clusters. Make five to eight clusters when the posts cover that many subjects, and fewer when they don't, but never more than eight. Name each one in two to four words, in the language most of the posts use, describing what this channel really talks about. There is no fixed list of topics. Each post goes in at most one cluster, and postIds must be ids exactly as given.
 
 Never judge a post's quality or predict how it will perform.`;
 

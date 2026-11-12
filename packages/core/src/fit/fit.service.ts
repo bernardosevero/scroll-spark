@@ -17,7 +17,10 @@ export const POSTS_PER_CHANNEL = 50;
 export const MAX_PROFILE_POSTS = 40;
 /** Each channel's profile costs one model call, so the channels checked at once are capped. */
 export const MAX_FIT_CHANNELS = 6;
-export const MIN_CLUSTERS = 5;
+/**
+ * The most clusters a profile may have. The prompt asks for five to eight on a long history, but a
+ * short one may cover only one or two subjects, so any number from one up is accepted.
+ */
 export const MAX_CLUSTERS = 8;
 /** A profile is rebuilt at most this often. */
 export const PROFILE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
@@ -170,9 +173,8 @@ function labelsFor(channels: BufferChannel[]) {
 }
 
 /**
- * Checks what the model sent against the rule that it only names things we know: between
- * `MIN_CLUSTERS` and `MAX_CLUSTERS` clusters (fewer when there are fewer posts), each holding
- * posts that exist. Anything else is `LLM_FAILED`.
+ * Checks what the model sent against the rule that it only names things we know: one to
+ * `MAX_CLUSTERS` clusters, each holding posts that exist. Anything else is `LLM_FAILED`.
  */
 function profileFrom(
   answer: unknown,
@@ -212,7 +214,7 @@ function profileFrom(
     }
   }
 
-  if (clusters.length < Math.min(MIN_CLUSTERS, kept.length) || clusters.length > MAX_CLUSTERS) {
+  if (clusters.length === 0 || clusters.length > MAX_CLUSTERS) {
     throw new AppError("LLM_FAILED");
   }
 

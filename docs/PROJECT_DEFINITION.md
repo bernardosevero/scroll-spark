@@ -162,7 +162,7 @@ Save the new token immediately and never retry a refresh automatically. If a ref
 
 **Per channel, not per user:** one account can run very different channels, such as a software LinkedIn and a nostalgia YouTube channel, so an account-wide check would mislead.
 
-**Clusters:** no fixed taxonomy. When the profile is built, each post gets a one-line summary and the LLM groups a channel's posts into 5–8 named clusters. At capture it receives those summaries and clusters, and returns the matching post IDs and a cluster, or a new cluster name. Our code validates every ID and calculates all counts and dates itself, so the numbers can't be hallucinated. The profile refreshes at most daily.
+**Clusters:** no fixed taxonomy. When the profile is built, each post gets a one-line summary and the LLM groups a channel's posts into named clusters: 5–8 on a long history, and fewer when a short one covers fewer subjects. At capture it receives those summaries and clusters, and returns the matching post IDs and a cluster, or a new cluster name. Our code validates every ID and calculates all counts and dates itself, so the numbers can't be hallucinated. The profile refreshes at most daily.
 
 **History cleaning before analysis:**
 
