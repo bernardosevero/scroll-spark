@@ -285,9 +285,8 @@ export function createBufferGateway({
         ...(input.dueAt === undefined ? {} : { dueAt: input.dueAt }),
         mode: input.mode,
         schedulingType: "automatic",
-        needsApproval: false,
-        // Text only, so no media. The exact shape for "none" is unconfirmed until #2.
-        assets: {},
+        // The fields Buffer's own draft example sends. Adding `assets: {}` and `needsApproval`
+        // made Buffer answer INTERNAL_SERVER_ERROR in the first real run, on Nov 11.
         saveToDraft: input.saveToDraft,
       });
 

@@ -19,3 +19,6 @@ next-env.d.ts
 
 # Agent worktrees
 .claude/worktrees/
+
+# Local HTTPS certificates from `next dev --experimental-https`. The key is private.
+apps/web/certificates/

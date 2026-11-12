@@ -1,4 +1,5 @@
 import { AppError } from "../errors/app-error";
+import { serviceLabel } from "../buffer/service-name";
 import type { Logger } from "../logging/logger";
 import type { BufferService } from "../buffer/buffer.service";
 import type { BufferChannel, BufferIdea } from "../buffer/schemas";
@@ -148,6 +149,26 @@ function labelOf(channel: BufferChannel) {
   return channel.displayName?.trim() || channel.name;
 }
 
+/** Each channel's label, with its service added where two channels would read the same. */
+function labelsFor(channels: BufferChannel[]) {
+  const counts = new Map<string, number>();
+
+  for (const channel of channels) {
+    counts.set(labelOf(channel), (counts.get(labelOf(channel)) ?? 0) + 1);
+  }
+
+  return new Map(
+    channels.map((channel) => {
+      const label = labelOf(channel);
+
+      return [
+        channel.id,
+        (counts.get(label) ?? 0) > 1 ? `${label} (${serviceLabel(channel.service)})` : label,
+      ];
+    }),
+  );
+}
+
 /**
  * Checks what the model sent against the rule that it only names things we know: between
  * `MIN_CLUSTERS` and `MAX_CLUSTERS` clusters (fewer when there are fewer posts), each holding
@@ -240,10 +261,14 @@ function isUsable(profile: ChannelProfile) {
   return profile.posts.length >= MIN_POSTS_TO_COMPARE && profile.clusters.length > 0;
 }
 
-function assessmentOf(channel: BufferChannel, profile: ChannelProfile): ChannelAssessment {
+function assessmentOf(
+  channel: BufferChannel,
+  channelName: string,
+  profile: ChannelProfile,
+): ChannelAssessment {
   return {
     channelId: channel.id,
-    channelName: labelOf(channel),
+    channelName,
     state: isUsable(profile) ? "ready" : "thin",
     usablePosts: profile.posts.length,
     readPosts: profile.readPosts,
@@ -399,9 +424,10 @@ export function createFitService({
     userId: string,
     organizationId: string,
     channel: BufferChannel,
+    channelName: string,
   ): Promise<ChannelAssessment> {
     try {
-      return assessmentOf(channel, await profileOf(userId, organizationId, channel));
+      return assessmentOf(channel, channelName, await profileOf(userId, organizationId, channel));
     } catch (error) {
       if (isReconnect(error)) {
         throw error;
@@ -411,7 +437,7 @@ export function createFitService({
 
       return {
         channelId: channel.id,
-        channelName: labelOf(channel),
+        channelName,
         state: "unavailable" as const,
         usablePosts: 0,
         readPosts: 0,
@@ -462,11 +488,12 @@ export function createFitService({
       }
 
       // Every profile is allowed to finish, and so to be saved, before an expired grant is reported.
+      const labels = labelsFor(history.channels);
       const [ideas, results] = await Promise.all([
         readIdeas(userId, organizationId),
         Promise.allSettled(
           channelsToCheck(history.channels, history.defaultChannelIds).map((channel) =>
-            assess(userId, organizationId, channel),
+            assess(userId, organizationId, channel, labels.get(channel.id) ?? labelOf(channel)),
           ),
         ),
       ]);

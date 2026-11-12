@@ -1,23 +1,12 @@
+import { serviceLabel } from "../buffer/service-name";
 import type { DraftBrief } from "./ship.service";
-
-const SERVICE_NAMES: Record<string, string> = {
-  linkedin: "LinkedIn",
-  twitter: "X",
-  x: "X",
-  threads: "Threads",
-  bluesky: "Bluesky",
-  mastodon: "Mastodon",
-  facebook: "Facebook",
-  instagram: "Instagram",
-  substack: "Substack",
-};
 
 /**
  * A prompt the user can paste into their own Claude or ChatGPT when we can't write the draft.
  * Built from the same brief as our own drafts, so it never holds the source text.
  */
 export function assistantPrompt(brief: DraftBrief): string {
-  const service = SERVICE_NAMES[brief.service.toLowerCase()] ?? brief.service;
+  const service = serviceLabel(brief.service);
   const hasSamples = brief.voiceSamples.length > 0;
 
   const rules = [
